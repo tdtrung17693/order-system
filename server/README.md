@@ -1,0 +1,21 @@
+# Order Management System
+
+- Actors: user, vendor
+- Use case:
+    - Users/Vendor Log in/Sign up
+    - User view products
+    - User add/remove the product from the cart
+    - Create new order from a set of items in the cart
+    - View list of products
+    - Manage products
+    - Manage inventory
+    - Users/vendors can log in, sign up
+- Tech stack:
+    - [echo](https://github.com/labstack/echo)
+    - [gorm](https://github.com/go-gorm/gorm)
+    - PostgresSQL
+- TODO:
+    - Add/remove payment info
+    - Add/remove cart item
+    - Cart -> Order
+     - Cancel vendor order
