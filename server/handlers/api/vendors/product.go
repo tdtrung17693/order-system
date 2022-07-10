@@ -12,16 +12,16 @@ import (
 )
 
 func CreateProduct(c echo.Context) error {
-	o := new(dto.CreateProductDto)
+	payload := new(dto.CreateProductDto)
 
-	if err := c.Bind(o); err != nil {
+	if err := c.Bind(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
 		})
 	}
 
-	if err := c.Validate(o); err != nil {
+	if err := c.Validate(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
@@ -31,8 +31,8 @@ func CreateProduct(c echo.Context) error {
 	currentUser := utils.GetCurrentUser(c)
 
 	newProduct := models.Product{
-		Name:        o.Name,
-		Description: o.Description,
+		Name:        payload.Name,
+		Description: payload.Description,
 		VendorID:    currentUser.ID,
 	}
 
@@ -46,12 +46,12 @@ func CreateProduct(c echo.Context) error {
 		})
 	}
 
-	newProduct.Vendor = *currentUser
+	newProduct.VendorID = currentUser.ID
 	return c.JSON(http.StatusOK, newProduct)
 }
 
 func UpdateProduct(c echo.Context) error {
-	o := new(dto.UpdateProductDto)
+	payload := new(dto.UpdateProductDto)
 	pIdParam := c.Param("id")
 
 	pId, err := strconv.ParseUint(pIdParam, 10, 64)
@@ -63,14 +63,14 @@ func UpdateProduct(c echo.Context) error {
 		})
 	}
 
-	if err := c.Bind(o); err != nil {
+	if err := c.Bind(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
 		})
 	}
 
-	if err := c.Validate(o); err != nil {
+	if err := c.Validate(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
@@ -95,7 +95,7 @@ func UpdateProduct(c echo.Context) error {
 		})
 	}
 
-	return products.UpdateProduct(uint(pId), *o)
+	return products.UpdateProduct(uint(pId), *payload)
 }
 
 func GetAllVendorProducts(c echo.Context) error {
@@ -115,7 +115,7 @@ func GetAllVendorProducts(c echo.Context) error {
 }
 
 func SetProductPrice(c echo.Context) error {
-	o := new(dto.SetProductPriceDto)
+	payload := new(dto.SetProductPriceDto)
 	pIdParam := c.Param("id")
 
 	pId, err := strconv.ParseUint(pIdParam, 10, 64)
@@ -127,14 +127,14 @@ func SetProductPrice(c echo.Context) error {
 		})
 	}
 
-	if err := c.Bind(o); err != nil {
+	if err := c.Bind(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
 		})
 	}
 
-	if err := c.Validate(o); err != nil {
+	if err := c.Validate(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
@@ -159,7 +159,7 @@ func SetProductPrice(c echo.Context) error {
 		})
 	}
 
-	if err := products.SetProductPrice(uint(pId), o.Price); err != nil {
+	if err := products.SetProductPrice(uint(pId), payload.Price); err != nil {
 		c.Logger().Error(err.Error())
 		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Code:    dto.ErrorInternalServerError,
@@ -171,7 +171,7 @@ func SetProductPrice(c echo.Context) error {
 }
 
 func GetProductPrices(c echo.Context) error {
-	o := new(dto.SetProductPriceDto)
+	payload := new(dto.SetProductPriceDto)
 	pIdParam := c.Param("id")
 
 	pId, err := strconv.ParseUint(pIdParam, 10, 64)
@@ -183,14 +183,14 @@ func GetProductPrices(c echo.Context) error {
 		})
 	}
 
-	if err := c.Bind(o); err != nil {
+	if err := c.Bind(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
 		})
 	}
 
-	if err := c.Validate(o); err != nil {
+	if err := c.Validate(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),

@@ -10,6 +10,11 @@ export interface Product {
   productPrice: number
 }
 
+export interface CreateProduct {
+  name: string
+  descriptiton: string
+}
+
 export interface UpdateProductStock {
   productId: number
   description: string

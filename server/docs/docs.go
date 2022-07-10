@@ -49,35 +49,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.UserLogInResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
                     }
                 }
             }
         }
     },
     "definitions": {
-        "dto.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.UserLogInResponse": {
             "type": "object",
             "properties": {
@@ -89,6 +66,9 @@ const docTemplate = `{
         "dto.UserRegisterDto": {
             "type": "object",
             "properties": {
+                "confirmPassword": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },

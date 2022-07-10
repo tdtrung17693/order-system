@@ -13,14 +13,20 @@ import (
 
 func FindUserCart(userId uint) (dto.CartDto, error) {
 	db := database.GetDBInstance()
-	o := models.Cart{
-		UserID: userId,
+	c := models.Cart{}
+	err := db.Where("user_id = ?", userId).Find(&c).Error
+	if err != nil {
+		return dto.CartDto{}, err
 	}
-	res := db.Preload("Items.Product").Preload("Items.ProductPrice").FirstOrCreate(&o)
 
-	result := dto.CartDto{}
+	o := []models.CartItem{}
+	res := db.Preload("Product").Preload("ProductPrice").Preload("Product.Vendor").Where("cart_id = ?", c.ID).Order("updated_at DESC").Find(&o)
 
-	for _, i := range o.Items {
+	result := dto.CartDto{
+		Items: make([]dto.CartItemDto, 0),
+	}
+
+	for _, i := range o {
 		item := dto.CartItemDto{
 			ID:           i.ID,
 			ProductID:    i.ProductID,
@@ -28,6 +34,7 @@ func FindUserCart(userId uint) (dto.CartDto, error) {
 			ProductPrice: i.ProductPrice.Price,
 			Quantity:     uint(i.Quantity),
 			VendorID:     i.Product.VendorID,
+			VendorName:   i.Product.Vendor.Name,
 		}
 
 		result.Items = append(result.Items, item)
@@ -36,20 +43,20 @@ func FindUserCart(userId uint) (dto.CartDto, error) {
 	return result, res.Error
 }
 
-func RemoveItemFromCart(cartId uint, itemId uint) error {
+func RemoveItemFromCart(cartId uint, productId uint) error {
 	db := database.GetDBInstance()
-	res := db.Where("id = ?", cartId).Association("Items").Delete(&models.CartItem{ID: itemId})
+	res := db.Where("product_id = ? and cart_id = ?", productId, cartId).Delete(&models.CartItem{})
 
-	return res
+	return res.Error
 }
 
 func AddItemToCart(cartId uint, productId uint, requiredQuantity uint, productPriceId uint) error {
 	db := database.GetDBInstance()
 
-	type result struct {
-		Result bool `gorm:"column:result"`
+	type Result struct {
+		Result bool `json:"result" gorm:"column:result"`
 	}
-	fmt.Println(cartId, productId)
+
 	return db.Transaction(func(tx *gorm.DB) error {
 		tableName := utils.GetModelTableName(models.CartItem{})
 		var err error
@@ -67,15 +74,15 @@ func AddItemToCart(cartId uint, productId uint, requiredQuantity uint, productPr
 		}
 
 		// check stock quantity and required quantity
-		o := result{}
+		o := Result{}
 		if err := tx.Raw(`
 			select sum(stock_quantity) > sum(required_quantity) as result from (
 				(select sum(coalesce(pt.quantity, 0)) as stock_quantity, 0 as required_quantity from products p
 					left join product_transactions pt on p.id = pt.product_id
 																	where p.id = ?
 				union
-				select 0, coalesce(max(quantity), 0) + ? from cart_items where cart_id = ? and product_id = ?)) d
-		`, productId, cartId, requiredQuantity, productId).Scan(&o).Error; err != nil {
+				select 0 as stock_quantity, coalesce(max(quantity), 0) + ? as required_quantity from cart_items where cart_id = ? and product_id = ?)) d
+		`, productId, requiredQuantity, cartId, productId).Scan(&o).Error; err != nil {
 			return err
 		}
 
@@ -97,5 +104,43 @@ func AddItemToCart(cartId uint, productId uint, requiredQuantity uint, productPr
 		}
 
 		return tx.Create(&newCartItem).Error
+	})
+}
+
+func SetCartItemQuantity(cartId uint, productId uint, requiredQuantity uint) error {
+	db := database.GetDBInstance()
+
+	type Result struct {
+		Result bool `json:"result" gorm:"column:result"`
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		tableName := utils.GetModelTableName(models.CartItem{})
+		var err error
+		if err = tx.Raw(fmt.Sprintf("LOCK TABLE %s IN ACCESS EXCLUSIVE MODE;", tableName)).Error; err != nil {
+			return err
+		}
+
+		// check stock quantity and required quantity
+		o := Result{}
+		if err := tx.Raw(`
+			select sum(stock_quantity) > sum(required_quantity) as result from (
+				(select sum(coalesce(pt.quantity, 0)) as stock_quantity, 0 as required_quantity from products p
+					left join product_transactions pt on p.id = pt.product_id
+																	where p.id = ?
+				union
+				select 0 as stock_quantity, ? as required_quantity from cart_items where cart_id = ? and product_id = ?)) d
+		`, productId, requiredQuantity, cartId, productId).Scan(&o).Error; err != nil {
+			return err
+		}
+
+		if !o.Result {
+			return dto.ErrorInsufficientQuantity
+		}
+
+		updatedCartItem := models.CartItem{
+			Quantity: uint64(requiredQuantity),
+		}
+		return tx.Where("cart_id = ? and product_id = ?", cartId, productId).Updates(&updatedCartItem).Error
 	})
 }

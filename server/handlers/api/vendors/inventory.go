@@ -44,7 +44,7 @@ func GetProductStocks(c echo.Context) error {
 }
 
 func UpdateProductStock(c echo.Context) error {
-	o := new(dto.UpdateProductStockDto)
+	payload := new(dto.UpdateProductStockDto)
 	pIdParam := c.Param("id")
 
 	pId, err := strconv.ParseUint(pIdParam, 10, 64)
@@ -56,14 +56,14 @@ func UpdateProductStock(c echo.Context) error {
 		})
 	}
 
-	if err := c.Bind(o); err != nil {
+	if err := c.Bind(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
 		})
 	}
 
-	if err := c.Validate(o); err != nil {
+	if err := c.Validate(payload); err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    dto.ErrorGeneric,
 			Message: err.Error(),
@@ -89,8 +89,8 @@ func UpdateProductStock(c echo.Context) error {
 	}
 
 	var quantity int
-	if o.Type == models.TransactionTypeIn {
-		err = products.ImportProductStock(uint(pId), int(o.Quantity), o.Description)
+	if payload.Type == models.TransactionTypeIn {
+		err = products.ImportProductStock(uint(pId), int(payload.Quantity), payload.Description)
 	} else {
 		quantity, err = products.FindProductStockQuantity(uint(pId))
 
@@ -101,14 +101,14 @@ func UpdateProductStock(c echo.Context) error {
 			})
 		}
 
-		if quantity < o.Quantity {
+		if quantity < payload.Quantity {
 			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 				Code:    dto.ErrorInternalServerError,
 				Message: dto.ErrorInternalServerError.Error(),
 			})
 		}
 
-		err = products.ExportProductStock(uint(pId), int(o.Quantity), o.Description)
+		err = products.ExportProductStock(uint(pId), int(payload.Quantity), payload.Description)
 	}
 
 	if err != nil {

@@ -18,8 +18,12 @@ func PrivateEndpoints(e *echo.Group) {
 	e.GET("/orders", api.GetAllOrders)
 	e.GET("/carts", api.GetCartItems)
 	e.POST("/carts", api.AddItemToCart)
+	e.PUT("/carts", api.SetCartItemQuantity)
+	e.POST("/carts/remove-item", api.DeleteCartItem)
 	e.GET("/products", api.GetAvailableProducts)
 	e.POST("/orders/:id/cancel", api.CancelOrder)
+	e.GET("/orders/export-csv", api.ExportCSV)
+	e.GET("/payment-methods", api.GetSupportedPaymentMethods)
 
 	initVendorsEnpoint(e)
 }
@@ -45,7 +49,6 @@ func initVendorsEnpoint(e *echo.Group) {
 	vendorGroup.POST("/products/:id/prices", vendors.SetProductPrice)
 	vendorGroup.GET("/products/:id/stocks", vendors.GetProductStocks)
 	vendorGroup.POST("/products/:id/stocks", vendors.UpdateProductStock)
-	vendorGroup.PUT("/orders", vendors.UpdateOrderStatus)
 	vendorGroup.GET("/orders", vendors.GetAllVendorOrders)
-	vendorGroup.POST("/orders/:id/cancel", api.CancelOrder)
+	vendorGroup.PATCH("/orders/:id", vendors.OrderNextStatus)
 }

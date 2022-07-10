@@ -2,6 +2,7 @@ import axios from 'axios'
 import auth from './auth'
 
 axios.defaults.headers.post['content-type'] = 'application/json'
+axios.defaults.headers.get['content-type'] = 'application/json'
 
 export const http = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -14,6 +15,7 @@ http.interceptors.request.use(
       config.headers = {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
+        'Content-Type': 'application/json',
       }
     }
 

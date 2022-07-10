@@ -8,16 +8,15 @@ import (
 )
 
 type OrdersCreateDto struct {
-	Orders          []OrderCreateDto
-	PaymentMethodId string `json:"paymentMethodId"`
-	ShippingAddress string `json:"shippingAddress"`
-	RecipientName   string `json:"recipientName"`
-	RecipientPhone  string `json:"recipientPhone"`
+	Orders           []OrderCreateDto
+	PaymentMethodId  string `json:"paymentMethodId"`
+	RecipientAddress string `json:"recipientAddress"`
+	RecipientName    string `json:"recipientName"`
+	RecipientPhone   string `json:"recipientPhone"`
 }
 
 type OrderCreateDto struct {
-	Items    []OrderItemDto `json:"items"`
-	VendorID uint           `json:"vendorId"`
+	Items []OrderItemDto `json:"items"`
 }
 
 type OrderDto struct {
@@ -25,7 +24,7 @@ type OrderDto struct {
 	Id               uint               `json:"id" gorm:"column:id"`
 	Status           models.OrderStatus `json:"status" gorm:"column:status"`
 	StatusChangeTime time.Time          `json:"statusChangeTime" gorm:"column:status_change_time"`
-	TotalPrice       decimal.Decimal    `json:"total" gorm:"column:total_price"`
+	TotalPrice       decimal.Decimal    `json:"totalPrice" gorm:"column:total_price"`
 	PaymentMethodID  string             `json:"paymentMethodId" gorm:"column:payment_method_id"`
 	ShippingAddress  string             `json:"shippingAddress" gorm:"column:shipping_address"`
 	RecipientName    string             `json:"recipientName" gorm:"column:recipient_name"`
@@ -39,7 +38,14 @@ type OrderUpdateStatusDto struct {
 }
 
 type OrderItemDto struct {
-	ProductID      uint32 `json:"productId"`
-	Quantity       int    `json:"quantity"`
-	ProductPriceID uint   `json:"productPriceId"`
+	ProductID uint32 `json:"productId"`
+	Quantity  int    `json:"quantity"`
+}
+
+type ExportCSVRequest struct {
+	Status models.OrderStatus `json:"status"`
+}
+
+type OrderNextStatusRequest struct {
+	OrderId uint `json:"orderId"`
 }

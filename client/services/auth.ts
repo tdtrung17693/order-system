@@ -14,11 +14,13 @@ interface AuthService {
   getAccessToken: () => Maybe<string>
   setAccessToken: (token: string) => void
   onLogout: (fn: () => void) => void
+  onLogin: (fn: () => void) => void
   init: () => Promise<Maybe<User>>
   login: (email: string, password: string) => Promise<any>
   logout: () => void
 }
 const onLogoutFns: (() => void)[] = []
+const onLogInFns: (() => void)[] = []
 const auth: AuthService = {
   authenticated: false,
   initialized: false,
@@ -26,13 +28,19 @@ const auth: AuthService = {
   onLogout(fn) {
     onLogoutFns.push(fn)
   },
+  onLogin(fn) {
+    onLogInFns.push(fn)
+  },
   async login(email: string, password: string) {
-    const response = await http.post('/login', {
+    let response = await http.post('/login', {
       email,
       password,
     })
     localStorage.setItem(ACCESS_TOKEN_KEY, response.data.accessToken)
-    window.location.href = '/'
+    response = await http.get('/me')
+    this.user = response.data
+    this.authenticated = true
+    onLogInFns.forEach((fn) => fn())
   },
   async init() {
     if (this.initialized) return
@@ -61,7 +69,7 @@ const auth: AuthService = {
   logout() {
     this.authenticated = false
     this.user = null
-    localStorage.removeItem('access_token')
+    localStorage.removeItem(ACCESS_TOKEN_KEY)
     onLogoutFns.forEach((fn) => fn())
     Router.push('/')
   },

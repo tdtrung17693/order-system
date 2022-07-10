@@ -1,13 +1,16 @@
 package dto
 
 import (
+	"encoding/json"
+
 	"github.com/labstack/echo/v4"
 )
 
 // `page` is 1-based
 type PaginationQuery struct {
-	PageIndex    int `json:"pageIndex"`
-	ItemsPerPage int `json:"itemsPerPage"`
+	PageIndex    int               `json:"pageIndex"`
+	ItemsPerPage int               `json:"itemsPerPage"`
+	Filters      map[string]string `json:"filters"`
 }
 
 type PaginationResponse[T interface{}] struct {
@@ -24,10 +27,13 @@ const (
 
 func ParsePaginationRequest(c echo.Context) *PaginationQuery {
 	p := new(PaginationQuery)
-
 	err := echo.QueryParamsBinder(c).
 		Int("itemsPerPage", &p.ItemsPerPage).
 		Int("pageIndex", &p.PageIndex).
+		CustomFunc("filters", func(_ []string) []error {
+			err := json.Unmarshal([]byte(c.QueryParam("filters")), &p.Filters)
+			return []error{err}
+		}).
 		BindError()
 
 	if err != nil {

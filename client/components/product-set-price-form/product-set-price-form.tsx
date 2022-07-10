@@ -1,17 +1,13 @@
-import React, { useEffect, useMemo } from 'react'
-import { useTranslation } from 'next-i18next'
-import { useForm } from 'react-hook-form'
-import * as yup from 'yup'
 import { yupResolver } from '@hookform/resolvers/yup'
-import auth from '../../services/auth'
-import { users } from '../../services/users'
-import { UserSignIn } from '../../dto/auth.dto'
-import { ProductUpdateType } from 'constants/product'
-import { SetProductPrice, UpdateProductStock } from 'dto/product.dto'
-import { product } from 'services/product'
-import { notification } from 'services/notification'
-import { handleApiError } from 'utils/error'
 import { Button } from 'antd'
+import { SetProductPrice } from 'dto/product.dto'
+import { useTranslation } from 'next-i18next'
+import React, { useEffect, useMemo } from 'react'
+import { useForm } from 'react-hook-form'
+import { notification } from 'services/notification'
+import { product } from 'services/product'
+import { handleApiError } from 'utils/error'
+import * as yup from 'yup'
 
 interface ProductSetPriceFormProps {
   productId: number
@@ -33,7 +29,7 @@ export const ProductSetPriceForm: React.FC<ProductSetPriceFormProps> = (
       })
       .required()
     return schema
-  }, [])
+  }, [t])
 
   const {
     register,

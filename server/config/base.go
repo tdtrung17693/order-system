@@ -20,6 +20,7 @@ type Config struct {
 	DBName       string
 	DBHost       string
 	DBPort       string
+	DBSeed       bool
 	AppPort      string
 	AppEnv       AppEnv
 	AppURL       string
@@ -28,7 +29,15 @@ type Config struct {
 
 var config = Config{}
 
-func LoadConfig() {
+func (config *Config) EnableDBSeed() {
+	config.DBSeed = true
+}
+
+func (config *Config) IsDevelopmentMode() bool {
+	return config.AppEnv == AppEnvDevelopment
+}
+
+func LoadConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -37,10 +46,12 @@ func LoadConfig() {
 	loadDBConfig(&config)
 	loadAppConfig(&config)
 	loadJWTConfig(&config)
+
+	return &config
 }
 
-func GetConfig() Config {
-	return config
+func GetConfig() *Config {
+	return &config
 }
 
 func getEnv(key string) string {

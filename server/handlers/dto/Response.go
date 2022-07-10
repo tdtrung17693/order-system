@@ -2,22 +2,21 @@ package dto
 
 import "errors"
 
-type ResponseError error
-
 var (
-	ErrorEmailExist             ResponseError = errors.New("email_exists")
-	ErrorPasswordMismatched     ResponseError = errors.New("password_mismatched")
-	ErrorGeneric                ResponseError = errors.New("generic_error")
-	ErrorUnauthorizedAccess     ResponseError = errors.New("unauthorized_access")
-	ErrorInvalidCredentials     ResponseError = errors.New("invalid_credentials")
-	ErrorInternalServerError    ResponseError = errors.New("internal_server_error")
-	ErrorInsufficientPermission ResponseError = errors.New("insufficient_permission")
-	ErrorInsufficientQuantity   ResponseError = errors.New("insufficient_stock_quantity")
+	ErrorEmailExist             error = errors.New("email_exists")
+	ErrorPasswordMismatched     error = errors.New("password_mismatched")
+	ErrorGeneric                error = errors.New("generic_error")
+	ErrorUnauthorizedAccess     error = errors.New("unauthorized_access")
+	ErrorInvalidCredentials     error = errors.New("invalid_credentials")
+	ErrorInternalServerError    error = errors.New("internal_server_error")
+	ErrorInsufficientPermission error = errors.New("insufficient_permission")
+	ErrorInsufficientQuantity   error = errors.New("insufficient_stock_quantity")
+	ErrorOrderFinalStateReached error = errors.New("order_final_status_reached")
 )
 
 type ErrorResponse struct {
-	Code    ResponseError `json:"code"`
-	Message string        `json:"message"`
+	Code    error  `json:"code"`
+	Message string `json:"message"`
 }
 
 type JSONResponse struct {

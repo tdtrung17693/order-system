@@ -6,6 +6,14 @@ type AddCartItemDto struct {
 	ProductID uint   `json:"productId"`
 	Quantity  uint64 `json:"quantity"`
 }
+type DeleteCartItemDto struct {
+	ProductID uint `json:"productId"`
+}
+
+type SetCartItemDto struct {
+	ProductID uint   `json:"productId"`
+	Quantity  uint64 `json:"quantity"`
+}
 
 type CartDto struct {
 	Items []CartItemDto `json:"items"`
@@ -18,4 +26,5 @@ type CartItemDto struct {
 	ProductPrice decimal.Decimal `json:"productPrice"`
 	Quantity     uint            `json:"quantity"`
 	VendorID     uint            `json:"vendorId"`
+	VendorName   string          `json:"vendorName"`
 }

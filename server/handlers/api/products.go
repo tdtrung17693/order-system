@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"order-system/database/products"
 	"order-system/handlers/dto"
+	"order-system/utils"
 
 	"github.com/labstack/echo/v4"
 )
@@ -11,7 +12,9 @@ import (
 func GetAvailableProducts(c echo.Context) error {
 	p := dto.ParsePaginationRequest(c)
 
-	paginatedRes, err := products.FindProducts(*p)
+	currentUser := utils.GetCurrentUser(c)
+
+	paginatedRes, err := products.FindAvailableProducts(currentUser.ID, *p)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{

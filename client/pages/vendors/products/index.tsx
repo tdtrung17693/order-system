@@ -1,8 +1,9 @@
-import { Button, Modal, Space, Table } from 'antd'
+import { Button, Modal, Popconfirm, Space, Table } from 'antd'
 import { TablePaginationConfig } from 'antd/lib/table'
 import Column from 'antd/lib/table/Column'
 import { FilterValue, SorterResult } from 'antd/lib/table/interface'
 import { LayoutDashboard } from 'components/layout/layout-dashboard'
+import { ProductCreateForm } from 'components/product-create-form/product-create-form'
 import { ProductSetPriceForm } from 'components/product-set-price-form/product-set-price-form'
 import { ProductUpdateForm } from 'components/product-update-form/product-update-form'
 import { ItemsPerPage } from 'constants/pagination'
@@ -25,6 +26,7 @@ import { Maybe } from 'types/maybe'
 enum ProductModalType {
   ModalUpdateStock,
   ModalSetPrice,
+  ModalNewProduct,
 }
 
 const VendorDashboardProducts: NextPage = () => {
@@ -69,11 +71,7 @@ const VendorDashboardProducts: NextPage = () => {
     }
   }, [authCtx.user, router])
 
-  const handleTableChange = (
-    newPagination: TablePaginationConfig,
-    filters: Record<string, FilterValue>,
-    sorter: SorterResult<Product>
-  ) => {
+  const handleTableChange = (newPagination: TablePaginationConfig) => {
     fetchData((newPagination.current || 1) - 1)
   }
 
@@ -101,13 +99,19 @@ const VendorDashboardProducts: NextPage = () => {
     setModalType(ProductModalType.ModalSetPrice)
   }
 
+  const showNewProductModal = () => {
+    setIsModalVisible(true)
+    setModalType(ProductModalType.ModalNewProduct)
+  }
+
   return (
     <>
       <div className="px-20">
         <main className="flex flex-col justify-start items-center min-h-screen p-16">
           <LayoutDashboard>
-            <div className="text-center mt-4 text-base">
-              <div className="p-2 ">
+            <div className=" mt-4 text-base">
+              <Button onClick={showNewProductModal}>New product</Button>
+              <div className="mt-4">
                 <Table
                   className="min-w-full"
                   dataSource={products}
@@ -171,6 +175,16 @@ const VendorDashboardProducts: NextPage = () => {
                         >
                           Set price
                         </Button>
+                        <Popconfirm
+                          title={t('product_delete_confirm')}
+                          onConfirm={() => {}}
+                          okText={t('confirm_ok_text')}
+                          cancelText={t('confirm_cancel_text')}
+                        >
+                          <Button type="primary" danger>
+                            {t('product_delete_text')}
+                          </Button>
+                        </Popconfirm>
                       </Space>
                     )}
                   />
@@ -186,6 +200,8 @@ const VendorDashboardProducts: NextPage = () => {
             ? productUpdateType == ProductUpdateType.Import
               ? t('product_import_modal_title')
               : t('product_export_modal_title')
+            : modalType == ProductModalType.ModalNewProduct
+            ? t('product_create_modal_title')
             : t('product_set_price_modal_title')
         }
         visible={isModalVisible}
@@ -197,6 +213,13 @@ const VendorDashboardProducts: NextPage = () => {
             productId={currentModalProduct?.id || -1}
             updateType={productUpdateType}
             onUpdated={() => {
+              setIsModalVisible(false)
+              fetchData((current || 1) - 1)
+            }}
+          />
+        ) : modalType == ProductModalType.ModalNewProduct ? (
+          <ProductCreateForm
+            onCreated={() => {
               setIsModalVisible(false)
               fetchData((current || 1) - 1)
             }}

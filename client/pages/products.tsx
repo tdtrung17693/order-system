@@ -3,33 +3,44 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import Image from 'next/image'
-import Link from 'next/link'
-import React, { useContext, useEffect, useState } from 'react'
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { ItemsPerPage } from '../constants/pagination'
-import {
-  buildPaginationRequest,
-  PaginationResponse,
-} from '../dto/pagination.dto'
+import { buildPaginationRequest } from '../dto/pagination.dto'
 import { Product } from '../dto/product.dto'
-import { http } from '../services/http'
 import { Add24Filled } from '@fluentui/react-icons'
 import { CartContext } from 'context/cart.context'
+import auth from 'services/auth'
+import { AuthContext } from 'context/auth.context'
+import { useRouter } from 'next/router'
+import { product } from 'services/product'
+import { Pagination } from 'antd'
 
 const ProductList: React.FC<any> = (props) => {
   const { t } = useTranslation('common')
   const cartCtx = useContext(CartContext)
+  const authCtx = useContext(AuthContext)
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [pageIndex, setPageIndex] = useState(0)
   const [total, setTotal] = useState(-1)
+  const totalPage = useMemo(() => Math.ceil(total / ItemsPerPage), [total])
 
   useEffect(() => {
-    http
-      .get<PaginationResponse<Product>>('/products', {
-        params: {
-          ...buildPaginationRequest(pageIndex, ItemsPerPage),
-        },
-      })
-      .then(({ data }) => {
+    if (auth.initialized && !authCtx.user) {
+      router.push('/auth/signin')
+    }
+  }, [authCtx.user, router])
+
+  const fetchPage = useCallback(() => {
+    product
+      .getProducts(buildPaginationRequest(pageIndex, ItemsPerPage))
+      .then((data) => {
         if (total == -1) {
           setTotal(data.total)
         }
@@ -37,6 +48,10 @@ const ProductList: React.FC<any> = (props) => {
         setProducts(data.items)
       })
   }, [pageIndex, total])
+
+  useEffect(() => {
+    fetchPage()
+  }, [fetchPage])
 
   function addProductToCart(p: Product) {
     cartCtx.addCartItem({
@@ -55,14 +70,14 @@ const ProductList: React.FC<any> = (props) => {
 
       <h1 className="text-5xl mb-4 text-center">{t('title_product')}</h1>
       <main className="flex flex-col justify-start items-center min-h-screen p-16">
-        <div className="flex justify-start min-w-full max-w-full">
+        <div className="flex flex-wrap justify-center min-w-full max-w-full">
           {products.length === 0 && 'No products'}
           {products.length > 0 &&
             products.map((product) => {
               return (
                 <div
                   key={product.id}
-                  className="flex flex-col border border-solid border-gray-300 hover:shadow-md hover:shadow-slate-300 transition"
+                  className="flex flex-col basis-1/6 mr-4 mb-4 border border-solid border-gray-300 hover:shadow-md hover:shadow-slate-300 transition"
                 >
                   <div className="p-4">
                     <div>
@@ -70,17 +85,19 @@ const ProductList: React.FC<any> = (props) => {
                         src="/images/default-product-image.png"
                         width={200}
                         height={200}
+                        layout="responsive"
+                        objectFit="cover"
                         alt={product.name}
                       />
                     </div>
                     <div>{product.name}</div>
-                    <div>{product.productPrice}</div>
+                    <div>${product.productPrice}</div>
                   </div>
                   <a
                     className="flex justify-center items-center py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white transition"
                     onClick={() => addProductToCart(product)}
                   >
-                    <span className="mr-2">
+                    <span className="flex mr-2">
                       <Add24Filled />
                     </span>
                     <span>{t('add_to_cart')}</span>
@@ -88,6 +105,18 @@ const ProductList: React.FC<any> = (props) => {
                 </div>
               )
             })}
+        </div>
+
+        <div className="flex flex-wrap justify-center min-w-full max-w-full">
+          <Pagination
+            current={pageIndex + 1}
+            total={total}
+            pageSize={ItemsPerPage}
+            hideOnSinglePage={true}
+            defaultPageSize={ItemsPerPage}
+            showSizeChanger={false}
+            onChange={(page, _) => setPageIndex(page - 1)}
+          />
         </div>
       </main>
     </div>

@@ -50,7 +50,8 @@ func FindProductsOfVendor(vendorId uint, paginationQuery dto.PaginationQuery) (*
 		left join product_prices pp2 on  (p.id = pp2.product_id and
 										(pp1.created_at < pp2.created_at or (pp1.created_at = pp2.created_at and pp1.id < pp2.id)))
 		where pp2.id is null and vendor_id = ?
-		group by p.id, pp1.price, pp1.id offset ? limit ?`, vendorId, pageIndex*itemsPerPage, itemsPerPage).Scan(&o).Error
+		group by p.id, pp1.price, pp1.id
+		order by p.created_at desc offset ? limit ?`, vendorId, pageIndex*itemsPerPage, itemsPerPage).Scan(&o).Error
 
 	if err != nil {
 		return nil, err
@@ -73,7 +74,7 @@ func FindProductsOfVendor(vendorId uint, paginationQuery dto.PaginationQuery) (*
 	}, nil
 }
 
-func FindProducts(paginationQuery dto.PaginationQuery) (*dto.PaginationResponse[dto.Product], error) {
+func FindAvailableProducts(userId uint, paginationQuery dto.PaginationQuery) (*dto.PaginationResponse[dto.Product], error) {
 	o := []dto.Product{}
 	db := database.GetDBInstance()
 	pageIndex := paginationQuery.PageIndex
@@ -88,8 +89,8 @@ func FindProducts(paginationQuery dto.PaginationQuery) (*dto.PaginationResponse[
 												(pp1.created_at < pp2.created_at or (pp1.created_at = pp2.created_at and pp1.id < pp2.id)))
 			where pp2.id is null
 			group by p.id, pp1.price, pp1.id
-		) d where stock_quantity >0
-		offset ? limit ?`, pageIndex*itemsPerPage, itemsPerPage).Scan(&o).Error
+		) d where stock_quantity >0 and vendor_id  != ?
+		offset ? limit ?`, userId, pageIndex*itemsPerPage, itemsPerPage).Scan(&o).Error
 
 	if err != nil {
 		return nil, err

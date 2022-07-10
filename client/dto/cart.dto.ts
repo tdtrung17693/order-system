@@ -3,6 +3,11 @@ export interface AddCartItem {
   quantity: number
 }
 
+export interface SetCartItemQuantity {
+  productId: number
+  quantity: number
+}
+
 export interface Cart {
   items: CartItem[]
 }
@@ -13,4 +18,5 @@ export interface CartItem {
   quantity: number
   productPriceId: number
   vendorId: number
+  vendorName: string
 }

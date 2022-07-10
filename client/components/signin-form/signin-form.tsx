@@ -1,11 +1,10 @@
-import React, { useMemo } from 'react'
+import { yupResolver } from '@hookform/resolvers/yup'
 import { useTranslation } from 'next-i18next'
+import React, { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import * as yup from 'yup'
-import { yupResolver } from '@hookform/resolvers/yup'
-import auth from '../../services/auth'
-import { users } from '../../services/users'
 import { UserSignIn } from '../../dto/auth.dto'
+import auth from '../../services/auth'
 
 export const SignInForm: React.FC<any> = (props) => {
   const { t } = useTranslation('common')
@@ -21,7 +20,7 @@ export const SignInForm: React.FC<any> = (props) => {
       })
       .required()
     return schema
-  }, [])
+  }, [t])
   const {
     register,
     handleSubmit,
@@ -36,12 +35,14 @@ export const SignInForm: React.FC<any> = (props) => {
       ...data,
     }
     auth.login(userData.email, userData.password).catch((err) => {
-      setError('apiError', { message: err.message })
+      setError('apiError', { message: t(err.response?.data?.message) })
     })
   }
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      {errors.apiError && <div>{errors.apiError!.message as any}</div>}
+      {errors.apiError && (
+        <div className="text-red-400">{errors.apiError!.message as any}</div>
+      )}
 
       <div className="mb-3 xl:w-96">
         <label className="form-label inline-block mb-2 text-gray-700 text-xl">

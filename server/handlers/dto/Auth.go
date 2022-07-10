@@ -16,3 +16,11 @@ type UserRegisterDto struct {
 	ConfirmPassword string          `json:"confirmPassword" valid:"required~password_required"`
 	Role            models.UserRole `json:"role" valid:"required~role_required"`
 }
+
+type UserDto struct {
+	ID     uint            `json:"id"`
+	Name   string          `json:"name"`
+	Email  string          `json:"email"`
+	Role   models.UserRole `json:"role"`
+	CartID uint            `json:"cart_id"`
+}

@@ -34,7 +34,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = (props) => {
       })
       .required()
     return schema
-  }, [])
+  }, [t])
   const {
     register,
     handleSubmit,

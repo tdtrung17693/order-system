@@ -7,7 +7,8 @@ type Cart struct {
 }
 
 type CartItem struct {
-	ID             uint         `json:"id" gorm:"primaryKey"`
+	ID uint `json:"id" gorm:"primaryKey"`
+	BaseWithAudit
 	Product        Product      `json:"product"`
 	ProductID      uint         `json:"productId"`
 	Quantity       uint64       `json:"quantity"`

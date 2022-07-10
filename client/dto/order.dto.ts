@@ -14,3 +14,19 @@ export interface Order {
   vendorId: number
   vendorName: string
 }
+export interface OrdersCreate {
+  orders: OrderCreate[]
+  paymentMethodId: string
+  recipientAddress: string
+  recipientName: string
+  recipientPhone: string
+}
+
+export interface OrderCreate {
+  items: OrderItem[]
+}
+
+export interface OrderItem {
+  productId: number
+  quantity: number
+}
