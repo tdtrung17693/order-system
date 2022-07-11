@@ -175,16 +175,6 @@ const VendorDashboardProducts: NextPage = () => {
                         >
                           Set price
                         </Button>
-                        <Popconfirm
-                          title={t('product_delete_confirm')}
-                          onConfirm={() => {}}
-                          okText={t('confirm_ok_text')}
-                          cancelText={t('confirm_cancel_text')}
-                        >
-                          <Button type="primary" danger>
-                            {t('product_delete_text')}
-                          </Button>
-                        </Popconfirm>
                       </Space>
                     )}
                   />
