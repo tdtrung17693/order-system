@@ -1,0 +1,40 @@
+version: '3.9'
+services:
+  backend:
+    build: ./server
+    environment:
+      - APP_PORT=8080
+      - JWT_SECRET_KEY=jWt_s3creT_k8y
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASS=mysecretpassword
+      - DB_NAME=order_tracking
+    # command: "/app/go-app -seed=true"
+    entrypoint: "/app/go-app -seed=true"
+    links:
+      - postgres
+    depends_on: 
+      postgres:
+        condition: service_healthy
+    ports:
+      - 8081:8080
+  frontend:
+    build: ./client
+    ports:
+      - 8082:3000
+    command: yarn start
+  postgres:
+    image: postgres:14.4-alpine
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_DB=order_tracking
+    ports:
+      - 54321:5432
+    healthcheck:
+      test: pg_isready -U postgres
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    
