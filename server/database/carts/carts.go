@@ -3,6 +3,7 @@ package carts
 import (
 	"errors"
 	"fmt"
+	"order-system/common"
 	"order-system/database"
 	"order-system/handlers/dto"
 	"order-system/models"
@@ -43,6 +44,7 @@ func FindUserCart(userId uint) (dto.CartDto, error) {
 	return result, res.Error
 }
 
+// Simply remove an item out of the user cart
 func RemoveItemFromCart(cartId uint, productId uint) error {
 	db := database.GetDBInstance()
 	res := db.Where("product_id = ? and cart_id = ?", productId, cartId).Delete(&models.CartItem{})
@@ -50,6 +52,9 @@ func RemoveItemFromCart(cartId uint, productId uint) error {
 	return res.Error
 }
 
+// Add a number of product item into the cart
+// The quantity will be checked and ensure that
+// it does not exceed the product stock quantity
 func AddItemToCart(cartId uint, productId uint, requiredQuantity uint, productPriceId uint) error {
 	db := database.GetDBInstance()
 
@@ -87,7 +92,7 @@ func AddItemToCart(cartId uint, productId uint, requiredQuantity uint, productPr
 		}
 
 		if !o.Result {
-			return dto.ErrorInsufficientQuantity
+			return common.ErrorInsufficientQuantity
 		}
 
 		if cartItemExisted {
@@ -107,6 +112,9 @@ func AddItemToCart(cartId uint, productId uint, requiredQuantity uint, productPr
 	})
 }
 
+// Set the quantity of an entry in the cart
+// The quantity will be checked and ensure that
+// it does not exceed the product stock quantity
 func SetCartItemQuantity(cartId uint, productId uint, requiredQuantity uint) error {
 	db := database.GetDBInstance()
 
@@ -135,7 +143,7 @@ func SetCartItemQuantity(cartId uint, productId uint, requiredQuantity uint) err
 		}
 
 		if !o.Result {
-			return dto.ErrorInsufficientQuantity
+			return common.ErrorInsufficientQuantity
 		}
 
 		updatedCartItem := models.CartItem{

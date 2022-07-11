@@ -2,6 +2,7 @@ package orders
 
 import (
 	"fmt"
+	"order-system/common"
 	"order-system/database"
 	"order-system/handlers/dto"
 	"order-system/models"
@@ -18,8 +19,6 @@ func CreateOrders(userId uint, orders []models.Order) error {
 	db := database.GetDBInstance()
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		// Get vendor id from items
-
 		orderItems := make(map[int]([]models.OrderItem))
 
 		// Find another way to
@@ -31,6 +30,8 @@ func CreateOrders(userId uint, orders []models.Order) error {
 				productIds = append(productIds, item.ProductID)
 			}
 
+			// ensure that all the products in the current order
+			// are coming from the same vendor
 			err := tx.Raw(`
 				select u.id as vendor_id from users u
 				inner join products p on u.id = p.vendor_id	
@@ -63,6 +64,7 @@ func CreateOrders(userId uint, orders []models.Order) error {
 			return err
 		}
 
+		// order items will be created from the corresponding cart items
 		orderItemsCreateQuery := `
 			insert into order_items (created_at, updated_at, product_id, quantity, order_id, product_price_id)
 				(select now(), now(), ci.product_id, ci.quantity, ?,  ci.product_price_id
@@ -70,6 +72,9 @@ func CreateOrders(userId uint, orders []models.Order) error {
 				inner join carts c on ci.cart_id = c.id
 				where ci.product_id in (?) and c.user_id = ?)
 		`
+
+		// keep track of cart items to be deleted
+		// after creating the order items
 		cartItemProductIdsToClean := []uint{}
 		for key, items := range orderItems {
 			productIds := []uint{}
@@ -80,8 +85,6 @@ func CreateOrders(userId uint, orders []models.Order) error {
 				productIds = append(productIds, item.ProductID)
 			}
 
-			fmt.Println(productIds, orderId, userId)
-
 			res := tx.Exec(orderItemsCreateQuery, orderId, productIds, userId)
 
 			if res.Error != nil {
@@ -89,13 +92,16 @@ func CreateOrders(userId uint, orders []models.Order) error {
 			}
 		}
 
-		// // clean up cart items related to created order items
+		// clean up cart items related to created order items
 		if err := tx.Where("product_id in (?) and cart_id = ?", cartItemProductIdsToClean, userCart.ID).Delete(&models.CartItem{}).
 			Error; err != nil {
 			return err
 		}
-		orderTransactions := []models.OrderTransaction{}
 
+		// for the sake of simplicity
+		// all orders are in status of "PAID"
+		// after creating
+		orderTransactions := []models.OrderTransaction{}
 		for _, order := range orders {
 			newOrderTransaction := models.OrderTransaction{
 				OrderID:        order.ID,
@@ -113,14 +119,6 @@ func CreateOrders(userId uint, orders []models.Order) error {
 			orderTransactions = append(orderTransactions, newOrderTransaction)
 		}
 
-		productTransactionsCreateQuery := `
-			insert into product_transactions (created_at, type, product_id, quantity, description)
-				(select now(), ?, oi.product_id, -oi.quantity, concat(concat('order ', oi.order_id), ' placed')
-				from order_items oi
-				inner join orders o on oi.order_id = o.id
-				where o.id in (?))
-		`
-
 		if err := tx.Create(orderTransactions).Error; err != nil {
 			return err
 		}
@@ -129,20 +127,23 @@ func CreateOrders(userId uint, orders []models.Order) error {
 		for _, order := range orders {
 			orderIds = append(orderIds, order.ID)
 		}
-		fmt.Println(orderIds)
-		if err := tx.Raw(productTransactionsCreateQuery, models.TransactionTypeOut, orderIds).Error; err != nil {
+
+		// export the corresponding products
+		// the product transaction entries will
+		// be created based on their corresponding order items
+		productTransactionsCreateQuery := `
+			insert into product_transactions (created_at, type, product_id, quantity, description)
+				(select now(), ?, oi.product_id, -oi.quantity, concat(concat('order ', oi.order_id), ' placed')
+				from order_items oi
+				inner join orders o on oi.order_id = o.id
+				where o.id in (?))`
+
+		if err := tx.Exec(productTransactionsCreateQuery, models.TransactionTypeOut, orderIds).Error; err != nil {
 			return err
 		}
 
 		return nil
 	})
-}
-
-func UpdateOrderStatus(id uint, status models.OrderStatus) error {
-	db := database.GetDBInstance()
-	res := db.Model(&models.Order{}).Where("id = ?", id).Update("status", status)
-
-	return res.Error
 }
 
 func FindOrderOfUser(id uint, userId uint) (models.Order, error) {
@@ -170,10 +171,11 @@ func getOrderNextStatus(status models.OrderStatus) (models.OrderStatus, error) {
 	case models.OrderShipping:
 		return models.OrderShipped, nil
 	default:
-		return models.OrderZeroStatus, dto.ErrorOrderFinalStateReached
+		return models.OrderZeroStatus, common.ErrorOrderFinalStateReached
 	}
 }
 
+// Process the order into its next state
 func SetNextStatusForOrder(orderId uint) error {
 	db := database.GetDBInstance()
 	status, err := FindOrderStatus(orderId)
@@ -183,7 +185,7 @@ func SetNextStatusForOrder(orderId uint) error {
 	}
 
 	nextStatus, err := getOrderNextStatus(status)
-	fmt.Println(nextStatus)
+
 	if err != nil {
 		return err
 	}
@@ -195,6 +197,7 @@ func SetNextStatusForOrder(orderId uint) error {
 	}).Error
 }
 
+// Find all the orders that are made by an user
 func FindAllOrdersOfUser(userId uint, paginationQuery dto.PaginationQuery) (*dto.PaginationResponse[dto.OrderDto], error) {
 	db := database.GetDBInstance()
 	o := []dto.OrderDto{}
@@ -262,6 +265,7 @@ func FindAllOrdersOfUser(userId uint, paginationQuery dto.PaginationQuery) (*dto
 	}, nil
 }
 
+// Find all the orders that are managed by a vendor user
 func FindAllOrdersOfVendor(vendorId uint, paginationQuery dto.PaginationQuery) (*dto.PaginationResponse[dto.OrderDto], error) {
 	db := database.GetDBInstance()
 	o := []dto.OrderDto{}

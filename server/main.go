@@ -68,19 +68,12 @@ func bootstrap() *echo.Echo {
 	})
 	handlers.PublicEndpoints(e.Group("/api"))
 
-	if c.IsDevelopmentMode() {
-		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins:     []string{"*"},
-			AllowMethods:     []string{"*"},
-			AllowCredentials: true,
-		}))
-	} else {
-		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins:     []string{c.AppURL},
-			AllowMethods:     []string{"*"},
-			AllowCredentials: true,
-		}))
-	}
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"*"},
+		AllowCredentials: true,
+	}))
+
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	return e

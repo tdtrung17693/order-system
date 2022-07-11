@@ -117,6 +117,8 @@ func FindAvailableProducts(userId uint, paginationQuery dto.PaginationQuery) (*d
 	}, nil
 }
 
+// Find the stock quantity of a product
+// by summing all of its product transaction quantity
 func FindProductStockQuantity(productId uint) (int, error) {
 	db := database.GetDBInstance()
 
