@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 	"order-system/common"
-	"order-system/database/payments"
+	"order-system/services/payments"
 
 	"github.com/labstack/echo/v4"
 )

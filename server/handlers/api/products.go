@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 	"order-system/common"
-	"order-system/database/products"
 	"order-system/handlers/dto"
+	"order-system/services/products"
 	"order-system/utils"
 
 	"github.com/labstack/echo/v4"

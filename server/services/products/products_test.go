@@ -2,8 +2,8 @@ package products_test
 
 import (
 	"order-system/database"
-	"order-system/database/products"
 	"order-system/models"
+	"order-system/services/products"
 	"os"
 	"path"
 	"testing"

@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"order-system/common"
-	"order-system/database/users"
 	"order-system/handlers/dto"
+	"order-system/services/users"
 	"order-system/utils"
 
 	"github.com/labstack/echo/v4"

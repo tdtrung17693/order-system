@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 	"order-system/common"
-	"order-system/database/orders"
 	"order-system/handlers/dto"
+	"order-system/services/orders"
 	"order-system/utils"
 	"strconv"
 

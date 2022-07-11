@@ -4,10 +4,10 @@ import (
 	"errors"
 	"net/http"
 	"order-system/common"
-	"order-system/database/carts"
-	"order-system/database/products"
 	"order-system/handlers/dto"
 	"order-system/handlers/websocket"
+	"order-system/services/carts"
+	"order-system/services/products"
 	"order-system/utils"
 
 	"github.com/labstack/echo/v4"

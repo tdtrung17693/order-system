@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"order-system/common"
-	"order-system/database/orders"
 	"order-system/handlers/dto"
 	"order-system/models"
+	"order-system/services/orders"
 	"order-system/utils"
 	"strconv"
 
