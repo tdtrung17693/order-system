@@ -10,8 +10,6 @@ services:
       - DB_USER=postgres
       - DB_PASS=mysecretpassword
       - DB_NAME=order_tracking
-    # command: "/app/go-app -seed=true"
-    entrypoint: "/app/go-app -seed=true"
     links:
       - postgres
     depends_on: 

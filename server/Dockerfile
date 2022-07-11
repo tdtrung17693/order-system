@@ -6,4 +6,4 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/go-app ./main.go
 
 EXPOSE 8080
-CMD ["/app/go-app"]
+CMD ["sh", "/app/entrypoint.sh"]

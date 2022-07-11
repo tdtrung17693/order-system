@@ -29,8 +29,6 @@ func InitDB() {
 	if err != nil {
 		log.Panic("database err: ", err)
 	}
-	autoMigrate(db)
-	seedDB(db)
 }
 
 func GetDBInstance() *gorm.DB {
@@ -55,7 +53,7 @@ func InitTestDB() {
 		log.Fatalln("storage err: ", err)
 	}
 	sqlDb.SetMaxIdleConns(3)
-	autoMigrate(db)
+	AutoMigrate(db)
 	loadFixtures(db)
 }
 
@@ -150,7 +148,7 @@ func DropTestDB() {
 	}
 }
 
-func autoMigrate(db *gorm.DB) {
+func AutoMigrate(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&models.User{},
 		&models.Product{},
@@ -169,7 +167,7 @@ func autoMigrate(db *gorm.DB) {
 	}
 }
 
-func seedDB(db *gorm.DB) {
+func SeedDB(db *gorm.DB) {
 	seedPaymentMethod(db)
 	seedDefaultUsers(db)
 
@@ -177,17 +175,14 @@ func seedDB(db *gorm.DB) {
 	fmt.Println("default password: password")
 	fmt.Println("regular user email: email@example.com")
 	fmt.Println("vendor user email: email.vendor@example.com")
+}
 
-	c := config.GetConfig()
-	// seed sample data in development mode
-	if c.DBSeed {
-		fmt.Println("seeding sample data...")
-		if err := seedUsersAndProducts(db); err != nil {
-			fmt.Println("error seeding sample data")
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
+func SeedSampleData(db *gorm.DB) {
+	fmt.Println("seeding sample data...")
+	if err := seedUsersAndProducts(db); err != nil {
+		fmt.Println("error seeding sample data")
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 
@@ -206,7 +201,6 @@ func seedDefaultUsers(db *gorm.DB) error {
 			Password: string(encryptedPassword),
 		}
 
-		newUser.ID = 1
 		if err := db.Clauses(clause.OnConflict{
 			UpdateAll: true,
 		}).Create(&newUser).Error; err != nil {
@@ -217,7 +211,6 @@ func seedDefaultUsers(db *gorm.DB) error {
 			UserID: newUser.ID,
 		}
 
-		cart.ID = 1
 		if err := db.Clauses(clause.OnConflict{
 			UpdateAll: true,
 		}).Create(&cart).Error; err != nil {
@@ -231,7 +224,6 @@ func seedDefaultUsers(db *gorm.DB) error {
 			Role:     models.Vendor,
 		}
 
-		newVendorUser.ID = 2
 		if err := db.Clauses(clause.OnConflict{
 			UpdateAll: true,
 		}).Create(&newVendorUser).Error; err != nil {
@@ -242,7 +234,6 @@ func seedDefaultUsers(db *gorm.DB) error {
 			UserID: newVendorUser.ID,
 		}
 
-		cart.ID = 2
 		if err := db.Clauses(clause.OnConflict{
 			UpdateAll: true,
 		}).Create(&cart).Error; err != nil {
@@ -300,17 +291,17 @@ func seedUsersAndProducts(db *gorm.DB) error {
 				Password: string(encryptedPassword),
 				Role:     models.Vendor,
 			}
-			newUser.ID = uint(i)
-			if err := db.Clauses(clause.OnConflict{
+
+			if err := tx.Clauses(clause.OnConflict{
 				UpdateAll: true,
 			}).Create(&newUser).Error; err != nil {
 				return err
 			}
 
 			cart := models.Cart{
-				UserID: uint(i),
+				UserID: newUser.ID,
 			}
-			if err := db.Clauses(clause.OnConflict{
+			if err := tx.Clauses(clause.OnConflict{
 				UpdateAll: true,
 			}).Create(&cart).Error; err != nil {
 				return err
