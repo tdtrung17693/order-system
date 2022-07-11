@@ -2,6 +2,7 @@ package vendors
 
 import (
 	"net/http"
+	"order-system/common"
 	"order-system/database/products"
 	"order-system/handlers/dto"
 	"order-system/models"
@@ -11,38 +12,18 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func GetProductStocks(c echo.Context) error {
-	pIdParam := c.Param("id")
-
-	pId, err := strconv.ParseUint(pIdParam, 10, 64)
-
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
-	}
-
-	currentUser := utils.GetCurrentUser(c)
-	product, err := products.FindProductById(uint(pId))
-
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
-	}
-
-	if product.VendorID != currentUser.ID {
-		return c.JSON(http.StatusForbidden, dto.ErrorResponse{
-			Code:    dto.ErrorInsufficientPermission,
-			Message: "insufficient_permission",
-		})
-	}
-
-	return c.JSON(http.StatusOK, product)
-}
-
+// UpdateProductStock godoc
+// @Summary      Update product stock (import/export)
+// @Tags         vendor-products
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Param payload body dto.UpdateProductStockDto false "Product stock update request"
+// @Param id path int true "Product id"
+// @Success      200  "Success"
+// @Failure      400  "Invalid request / Insufficient stock quantity" {object} echo.HTTPError
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/vendors/products/:id/stocks [post]
 func UpdateProductStock(c echo.Context) error {
 	payload := new(dto.UpdateProductStockDto)
 	pIdParam := c.Param("id")
@@ -50,24 +31,11 @@ func UpdateProductStock(c echo.Context) error {
 	pId, err := strconv.ParseUint(pIdParam, 10, 64)
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		return common.ErrorInternalServerError
 	}
 
-	if err := c.Bind(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
-	}
-
-	if err := c.Validate(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
+	if err := utils.BindAndValidate(c, payload); err != nil {
+		return err
 	}
 
 	currentUser := utils.GetCurrentUser(c)
@@ -75,17 +43,14 @@ func UpdateProductStock(c echo.Context) error {
 	product, err := products.FindProductById(uint(pId))
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		return common.ErrorInternalServerError
 	}
 
 	if product.VendorID != currentUser.ID {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorInsufficientPermission,
-			Message: "insufficient_permission",
-		})
+		return &echo.HTTPError{
+			Code:    http.StatusForbidden,
+			Message: common.ErrorInsufficientPermission.Error(),
+		}
 	}
 
 	var quantity int
@@ -95,27 +60,21 @@ func UpdateProductStock(c echo.Context) error {
 		quantity, err = products.FindProductStockQuantity(uint(pId))
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-				Code:    dto.ErrorInternalServerError,
-				Message: dto.ErrorInternalServerError.Error(),
-			})
+			return common.ErrorInternalServerError
 		}
 
 		if quantity < payload.Quantity {
-			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-				Code:    dto.ErrorInternalServerError,
-				Message: dto.ErrorInternalServerError.Error(),
-			})
+			return &echo.HTTPError{
+				Code:    http.StatusBadRequest,
+				Message: common.ErrorInsufficientQuantity.Error(),
+			}
 		}
 
 		err = products.ExportProductStock(uint(pId), int(payload.Quantity), payload.Description)
 	}
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		return common.ErrorInternalServerError
 	}
 
 	return c.NoContent(http.StatusOK)

@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"order-system/common"
 	"order-system/database/users"
 	"order-system/handlers/dto"
 	"order-system/utils"
@@ -11,29 +12,37 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Login godoc
+// @Summary      User logging in
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param payload body dto.UserLoginDto true "user credentials"
+// @Success      200  {object}  dto.UserLogInResponse
+// @Failure      401  {object}  echo.HTTPError
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /login [post]
 func Login(c echo.Context) error {
 	payload := new(dto.UserLoginDto)
 
-	if err := c.Bind(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Message: err.Error(),
-		})
-	}
-
-	if err := c.Validate(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Message: err.Error(),
-		})
+	if err := utils.BindAndValidate(c, payload); err != nil {
+		return err
 	}
 
 	storedUser, err := users.FindUserByEmail(payload.Email)
 
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Message: dto.ErrorInvalidCredentials.Error()})
+		return &echo.HTTPError{
+			Code:    http.StatusUnauthorized,
+			Message: common.ErrorInvalidCredentials,
+		}
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(payload.Password)); err != nil {
-		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Code: dto.ErrorInvalidCredentials, Message: dto.ErrorInvalidCredentials.Error()})
+		return &echo.HTTPError{
+			Code:    http.StatusUnauthorized,
+			Message: common.ErrorInvalidCredentials,
+		}
 	}
 
 	token, err := utils.CreateToken(storedUser)
@@ -54,46 +63,42 @@ func Login(c echo.Context) error {
 // @Produce      json
 // @Param payload body dto.UserRegisterDto true "user information"
 // @Success      200  {object}  dto.UserLogInResponse
-// @Failure      400  {object}  dto.ErrorResponse
-// @Failure      500  {object}  dto.ErrorResponse
+// @Failure      400  {object}  echo.HTTPError
+// @Failure      500  {object}  echo.HTTPError
 // @Router       /register [post]
 func RegisterUser(c echo.Context) error {
 	payload := new(dto.UserRegisterDto)
 
-	if err := c.Bind(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
-	}
-
-	if err := c.Validate(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
+	if err := utils.BindAndValidate(c, payload); err != nil {
+		return err
 	}
 
 	userExists, err := users.UserExists(payload.Email)
 
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Code: dto.ErrorInternalServerError, Message: "Internal server error."})
+		return common.ErrorInternalServerError
 	}
 
 	if userExists {
-		return c.JSON(http.StatusOK, dto.ErrorResponse{Code: dto.ErrorEmailExist, Message: dto.ErrorEmailExist.Error()})
+		return &echo.HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: common.ErrorEmailExist.Error(),
+		}
 	}
 
 	if payload.ConfirmPassword != payload.Password {
-		return c.JSON(http.StatusOK, dto.ErrorResponse{Code: dto.ErrorPasswordMismatched, Message: dto.ErrorPasswordMismatched.Error()})
+		return &echo.HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: common.ErrorPasswordMismatched.Error(),
+		}
 	}
 
 	encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), 10)
 
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Code: dto.ErrorInternalServerError, Message: "Internal server error."})
+		return common.ErrorInternalServerError
 	}
 
 	// To make things simple
@@ -107,14 +112,14 @@ func RegisterUser(c echo.Context) error {
 
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Code: dto.ErrorInternalServerError, Message: "Internal server error."})
+		return common.ErrorInternalServerError
 	}
 
 	token, err := utils.CreateToken(user)
 
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Code: dto.ErrorInternalServerError, Message: "Internal server error."})
+		return common.ErrorInternalServerError
 	}
 
 	return c.JSON(http.StatusOK, dto.UserLogInResponse{

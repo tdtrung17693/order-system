@@ -33,7 +33,7 @@ type OrderDto struct {
 	VendorName       string             `json:"vendorName" gorm:"column:vendor_name"`
 }
 
-type OrderUpdateStatusDto struct {
+type OrderCancelRequest struct {
 	Status models.OrderStatus `json:"status"`
 }
 

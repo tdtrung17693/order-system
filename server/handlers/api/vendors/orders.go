@@ -2,16 +2,27 @@ package vendors
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
+	"order-system/common"
 	"order-system/database/orders"
 	"order-system/handlers/dto"
 	"order-system/utils"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
+// GetAllVendorOrders godoc
+// @Summary      Get all orders of current logged in vendors
+// @Tags         vendor-orders
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Param payload query dto.PaginationQuery false "Pagination request"
+// @Success      200  "Success"
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/vendors/orders [get]
 func GetAllVendorOrders(c echo.Context) error {
 	currentUser := utils.GetCurrentUser(c)
 	p := dto.ParsePaginationRequest(c)
@@ -19,134 +30,97 @@ func GetAllVendorOrders(c echo.Context) error {
 	res, err := orders.FindAllOrdersOfVendor(currentUser.ID, *p)
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		return common.ErrorInternalServerError
 	}
 
 	return c.JSON(http.StatusOK, res)
 }
 
-func UpdateOrderStatus(c echo.Context) error {
-	payload := new(dto.OrderUpdateStatusDto)
-
-	idStr := c.Param("id")
-
-	id, err := strconv.Atoi(idStr)
-
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
-	}
-
-	currentUser := utils.GetCurrentUser(c)
-	_, err = orders.FindOrderOfUser(uint(id), currentUser.ID)
-
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
-	}
-
-	if err = c.Bind(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
-	}
-	if err = c.Validate(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
-	}
-
-	err = orders.UpdateOrderStatus(uint(id), payload.Status)
-
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
-	}
-
-	return c.NoContent(http.StatusOK)
-}
-
+// OrderNextStatus godoc
+// @Summary      Move an order to its next status
+// @Tags         vendor-orders
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Param id path int true "Order id"
+// @Success      200  "Success"
+// @Failure      400  "The order has reached its final state" {object}  echo.HTTPError
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/vendors/orders/:id [put]
 func OrderNextStatus(c echo.Context) error {
 	pIdParam := c.Param("id")
 
 	pId, err := strconv.ParseUint(pIdParam, 10, 64)
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		return common.ErrorInternalServerError
 	}
 
 	currentUser := utils.GetCurrentUser(c)
 	_, err = orders.FindOrderOfVendor(uint(pId), currentUser.ID)
+
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		return common.ErrorInternalServerError
 	}
 
 	if err := orders.SetNextStatusForOrder(uint(pId)); err != nil {
-		if errors.Is(err, dto.ErrorOrderFinalStateReached) {
-			return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-				Code:    err,
-				Message: err.Error(),
-			})
+		if errors.Is(err, common.ErrorOrderFinalStateReached) {
+			return &echo.HTTPError{
+				Code:    http.StatusBadRequest,
+				Message: common.ErrorOrderFinalStateReached.Error(),
+			}
 		}
 
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		return common.ErrorInternalServerError
 	}
 
 	return c.NoContent(http.StatusOK)
 }
 
+// CancelOrder godoc
+// @Summary     Cancel an order by logged in vendor
+// @Tags         vendor-orders
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Param id path int true "Order id"
+// @Param payload body dto.OrderCancelRequest true "Cancel order request payload"
+// @Success      200  "Success"
+// @Failure      400  "Invalid request" {object}  echo.HTTPError
+// @Failure      404  "Order not found (or not belongs to current logged in vendor)" {object}  echo.HTTPError
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/vendors/orders/:id/cancel [post]
 func CancelOrder(c echo.Context) error {
-	payload := new(dto.OrderUpdateStatusDto)
+	payload := new(dto.OrderCancelRequest)
 
 	idStr := c.Param("id")
 
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		c.Logger().Error(err)
+		return common.ErrorInternalServerError
+	}
+
+	if err := utils.BindAndValidate(c, payload); err != nil {
+		return err
 	}
 
 	currentUser := utils.GetCurrentUser(c)
 	_, err = orders.FindOrderOfVendor(uint(id), currentUser.ID)
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
-	}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &echo.HTTPError{
+				Code:    http.StatusNotFound,
+				Message: common.ErrorResourceNotFound.Error(),
+			}
+		}
 
-	if err = c.Bind(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
+		c.Logger().Error(err.Error())
+		return common.ErrorInternalServerError
 	}
 
 	if err = c.Validate(payload); err != nil {
@@ -157,10 +131,7 @@ func CancelOrder(c echo.Context) error {
 
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: fmt.Sprintf("Cannot cancel order %d", id),
-		})
+		return common.ErrorInternalServerError
 	}
 
 	return c.NoContent(http.StatusOK)

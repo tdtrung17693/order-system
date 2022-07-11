@@ -2,20 +2,27 @@ package api
 
 import (
 	"net/http"
+	"order-system/common"
 	"order-system/database/payments"
-	"order-system/handlers/dto"
 
 	"github.com/labstack/echo/v4"
 )
 
+// GetSupportedPaymentMethods godoc
+// @Summary      Get all supported payment methods
+// @Tags         payments
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Success      200  "Success" {object} []dto.PaymentMethod
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/payments [get]
 func GetSupportedPaymentMethods(c echo.Context) error {
 	res, err := payments.FindAllPaymentMethod()
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		c.Logger().Error(err)
+		return common.ErrorInternalServerError
 	}
 
 	return c.JSON(http.StatusOK, res)

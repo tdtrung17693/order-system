@@ -24,3 +24,7 @@ type UserDto struct {
 	Role   models.UserRole `json:"role"`
 	CartID uint            `json:"cart_id"`
 }
+
+type UserLogInResponse struct {
+	AccessToken string `json:"accessToken"`
+}

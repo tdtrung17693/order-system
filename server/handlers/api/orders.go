@@ -3,8 +3,10 @@ package api
 import (
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"net/http"
+	"order-system/common"
 	"order-system/database/orders"
 	"order-system/handlers/dto"
 	"order-system/models"
@@ -12,8 +14,18 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
+// GetAllOrders godoc
+// @Summary      Get all orders of a current logged in user
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Success      200  "Success" {object} dto.PaginationResponse
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/orders [get]
 func GetAllOrders(c echo.Context) error {
 	currentUser := utils.GetCurrentUser(c)
 	p := dto.ParsePaginationRequest(c)
@@ -21,30 +33,28 @@ func GetAllOrders(c echo.Context) error {
 	paginatedRes, err := orders.FindAllOrdersOfUser(currentUser.ID, *p)
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
+		c.Logger().Error(err)
+		return common.ErrorInternalServerError
 	}
 
 	return c.JSON(http.StatusOK, paginatedRes)
 }
 
+// CreateOrders godoc
+// @Summary      Create orders based on chosen cart items
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Param payload body dto.OrdersCreateDto true "The information of the orders to be created"
+// @Success      200  "Success"
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/orders [post]
 func CreateOrders(c echo.Context) error {
 	payload := new(dto.OrdersCreateDto)
 
-	if err := c.Bind(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
-	}
-
-	if err := c.Validate(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
+	if err := utils.BindAndValidate(c, payload); err != nil {
+		return err
 	}
 
 	currentUser := utils.GetCurrentUser(c)
@@ -72,64 +82,76 @@ func CreateOrders(c echo.Context) error {
 	err := orders.CreateOrders(currentUser.ID, newOrders)
 
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: "internal_server_error",
-		})
+		c.Logger().Error(err.Error())
+		return common.ErrorInternalServerError
 	}
 
 	return c.NoContent(http.StatusOK)
 }
 
+// CancelOrder godoc
+// @Summary      Cancel an user's order
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Param payload body dto.OrderCancelRequest true "The information of the order to be cancelled"
+// @Param id  path int true "The id of the order to be cancelled"
+// @Success      200  "Success"
+// @Failure      400  "invalid payload" echo.HTTPError
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/orders/:id/cancel [post]
 func CancelOrder(c echo.Context) error {
-	payload := new(dto.OrderUpdateStatusDto)
+	payload := new(dto.OrderCancelRequest)
 
 	idStr := c.Param("id")
 
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: "internal_server_error",
-		})
+		c.Logger().Error(err.Error())
+		return common.ErrorInternalServerError
+	}
+
+	if err := utils.BindAndValidate(c, payload); err != nil {
+		return err
 	}
 
 	currentUser := utils.GetCurrentUser(c)
 	_, err = orders.FindOrderOfUser(uint(id), currentUser.ID)
 
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{Code: dto.ErrorGeneric, Message: "Order not found"})
-	}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &echo.HTTPError{
+				Code:    http.StatusNotFound,
+				Message: common.ErrorResourceNotFound.Error(),
+			}
+		}
 
-	if err = c.Bind(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
-	}
-
-	if err = c.Validate(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    dto.ErrorGeneric,
-			Message: err.Error(),
-		})
+		c.Logger().Error(err.Error())
+		return common.ErrorInternalServerError
 	}
 
 	err = orders.CancelOrder(uint(id))
 
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		c.Logger().Error(err.Error())
+		return common.ErrorInternalServerError
 	}
 
 	return c.NoContent(http.StatusOK)
 }
 
+// ExportCSV godoc
+// @Summary      Export user's orders to CSV
+// @Tags         orders
+// @Accept       json
+// @Produce      text/csv
+// @Param Authorization header string true "With the bearer started"
+// @Param status query string false "Status of the orders to be exported"
+// @Success      200  "Success"
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/orders/export-csv [get]
 func ExportCSV(c echo.Context) error {
 	status := c.QueryParam("status")
 
@@ -155,10 +177,7 @@ func ExportCSV(c echo.Context) error {
 
 	if err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		return common.ErrorInternalServerError
 	}
 
 	b := &bytes.Buffer{}

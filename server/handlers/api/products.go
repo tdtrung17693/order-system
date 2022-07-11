@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"order-system/common"
 	"order-system/database/products"
 	"order-system/handlers/dto"
 	"order-system/utils"
@@ -9,6 +10,16 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// GetAvailableProducts godoc
+// @Summary      Get available products (in-stock products)
+// @Tags         products
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Param payload query dto.PaginationQuery false "Pagination request"
+// @Success      200  "Success" {object} dto.PaginationResponse
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/products [get]
 func GetAvailableProducts(c echo.Context) error {
 	p := dto.ParsePaginationRequest(c)
 
@@ -17,10 +28,8 @@ func GetAvailableProducts(c echo.Context) error {
 	paginatedRes, err := products.FindAvailableProducts(currentUser.ID, *p)
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Code:    dto.ErrorInternalServerError,
-			Message: dto.ErrorInternalServerError.Error(),
-		})
+		c.Logger().Error(err)
+		return common.ErrorInternalServerError
 	}
 
 	return c.JSON(http.StatusOK, paginatedRes)
