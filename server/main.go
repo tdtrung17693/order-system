@@ -8,6 +8,8 @@ import (
 	"order-system/database"
 	"order-system/handlers"
 	"order-system/handlers/dto"
+	"order-system/handlers/websocket"
+	"os"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
@@ -20,6 +22,8 @@ import (
 )
 
 var dbSeed = flag.Bool("seed", false, "whether to perform db seeding")
+var dbSeedSample = flag.Bool("seedsample", false, "whether to perform db seeding for sample data")
+var dbMigrate = flag.Bool("migrate", false, "whether to perform db migration")
 
 type GoValidatorAdapter struct {
 }
@@ -33,13 +37,28 @@ func (v *GoValidatorAdapter) Validate(i interface{}) error {
 
 func bootstrap() *echo.Echo {
 	// chores
-	c := config.LoadConfig()
-
-	if *dbSeed {
-		c.EnableDBSeed()
-	}
+	config.LoadConfig()
 
 	database.InitDB()
+	db := database.GetDBInstance()
+
+	if *dbMigrate {
+		database.AutoMigrate(db)
+	}
+
+	if *dbSeed {
+		database.SeedDB(db)
+	}
+
+	if *dbSeedSample {
+		database.SeedSampleData(db)
+	}
+
+	// if run migrate or seeding,
+	// just run as a cli tool
+	if *dbMigrate || *dbSeed || *dbSeedSample {
+		os.Exit(0)
+	}
 
 	// allow decimal.Decimal value to be a number in the marshalled JSON
 	// because these values only use for displaying, so no need to worry about the precison
@@ -50,8 +69,6 @@ func bootstrap() *echo.Echo {
 	e.Validator = &GoValidatorAdapter{}
 
 	e.Use(middleware.Logger())
-
-	e.Use(middleware.Recover())
 
 	protectedApiGroup := e.Group("/api")
 
@@ -75,6 +92,8 @@ func bootstrap() *echo.Echo {
 	}))
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
+	go websocket.GetHub().Run()
 
 	return e
 }

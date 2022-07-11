@@ -70,38 +70,40 @@ const ProductList: React.FC<any> = (props) => {
 
       <h1 className="text-5xl mb-4 text-center">{t('title_product')}</h1>
       <main className="flex flex-col justify-start items-center min-h-screen p-16">
-        <div className="flex flex-wrap justify-center min-w-full max-w-full">
+        <div className="flex flex-wrap justify-start min-w-full max-w-full">
           {products.length === 0 && 'No products'}
           {products.length > 0 &&
             products.map((product) => {
               return (
                 <div
                   key={product.id}
-                  className="flex flex-col basis-1/6 mr-4 mb-4 border border-solid border-gray-300 hover:shadow-md hover:shadow-slate-300 transition"
+                  className="flex flex-col lg:basis-1/5 md:basis-1/2 mb-4"
                 >
-                  <div className="p-4">
-                    <div>
-                      <Image
-                        src="/images/default-product-image.png"
-                        width={200}
-                        height={200}
-                        layout="responsive"
-                        objectFit="cover"
-                        alt={product.name}
-                      />
+                  <div className="m-2 border border-solid border-gray-300 hover:shadow-md hover:shadow-slate-300 transition">
+                    <div className="p-4">
+                      <div>
+                        <Image
+                          src="/images/default-product-image.png"
+                          width={200}
+                          height={200}
+                          layout="responsive"
+                          objectFit="cover"
+                          alt={product.name}
+                        />
+                      </div>
+                      <div>{product.name}</div>
+                      <div>${product.productPrice}</div>
                     </div>
-                    <div>{product.name}</div>
-                    <div>${product.productPrice}</div>
+                    <a
+                      className="flex justify-center items-center py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white transition"
+                      onClick={() => addProductToCart(product)}
+                    >
+                      <span className="flex mr-2">
+                        <Add24Filled />
+                      </span>
+                      <span>{t('add_to_cart')}</span>
+                    </a>
                   </div>
-                  <a
-                    className="flex justify-center items-center py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white transition"
-                    onClick={() => addProductToCart(product)}
-                  >
-                    <span className="flex mr-2">
-                      <Add24Filled />
-                    </span>
-                    <span>{t('add_to_cart')}</span>
-                  </a>
                 </div>
               )
             })}

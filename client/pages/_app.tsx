@@ -13,6 +13,7 @@ import '../styles/globals.css'
 import { Maybe } from '../types/maybe'
 import { handleApiError } from 'utils/error'
 import Router from 'next/router'
+import { websocket } from 'services/websocket'
 
 function MyApp({ Component, pageProps }: AppProps) {
   const { t } = useTranslation('common')
@@ -67,21 +68,29 @@ function MyApp({ Component, pageProps }: AppProps) {
     setUser(null)
   }
 
+  function initAuthAppState() {
+    if (!auth.user) return
+    setUser(auth.user)
+    setAuthenticated(true)
+    getCart()
+    websocket.init()
+    websocket.onMessage(() => {
+      console.log('asd')
+      getCart()
+    })
+  }
+
   useEffect(() => {
     auth.onLogin(() => {
-      setUser(auth.user)
-      setAuthenticated(true)
-      getCart()
+      initAuthAppState()
       Router.push('/')
     })
     auth.init().then((user) => {
       if (user) {
-        setUser(user)
-        setAuthenticated(true)
-        getCart()
+        initAuthAppState()
       }
     })
-  }, [getCart])
+  }, [])
 
   return (
     <AuthContext.Provider value={{ authenticated, user, logout }}>

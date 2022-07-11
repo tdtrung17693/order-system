@@ -7,6 +7,7 @@ import (
 	"order-system/database/carts"
 	"order-system/database/products"
 	"order-system/handlers/dto"
+	"order-system/handlers/websocket"
 	"order-system/utils"
 
 	"github.com/labstack/echo/v4"
@@ -51,6 +52,8 @@ func AddItemToCart(c echo.Context) error {
 		return common.ErrorInternalServerError
 	}
 
+	websocket.GetHub().RefreshCart(currentUser.CartID)
+
 	return c.NoContent(http.StatusOK)
 }
 
@@ -78,6 +81,7 @@ func DeleteCartItem(c echo.Context) error {
 		return common.ErrorInternalServerError
 	}
 
+	websocket.GetHub().RefreshCart(currentUser.CartID)
 	return c.NoContent(http.StatusOK)
 }
 
@@ -113,8 +117,8 @@ func SetCartItemQuantity(c echo.Context) error {
 		return common.ErrorInternalServerError
 	}
 
+	websocket.GetHub().RefreshCart(currentUser.CartID)
 	return c.NoContent(http.StatusOK)
-
 }
 
 // GetCartItems godoc

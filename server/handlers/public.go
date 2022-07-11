@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"order-system/handlers/api"
+	"order-system/handlers/websocket"
 
 	"github.com/labstack/echo/v4"
 )
@@ -20,4 +21,5 @@ func PublicEndpoints(e *echo.Group) {
 			Message: errors.New("ASDS").Error(),
 		}
 	})
+	e.GET("/hub/cart", websocket.CreateWebsocketHandler(websocket.GetHub()))
 }

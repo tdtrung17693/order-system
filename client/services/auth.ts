@@ -20,6 +20,7 @@ interface AuthService {
 }
 const onLogoutFns: (() => void)[] = []
 const onLogInFns: (() => void)[] = []
+
 const auth: AuthService = {
   authenticated: false,
   initialized: false,
@@ -48,7 +49,7 @@ const auth: AuthService = {
 
       if (!token) return
 
-      const response = await http.get('/me')
+      let response = await http.get('/me')
       this.user = response.data
       this.authenticated = true
 
