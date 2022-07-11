@@ -5,13 +5,13 @@ import { http } from './http'
 
 export const cart = {
   async getUserCart(): Promise<Cart> {
-    const response = await http.get<Cart>('/carts')
+    const response = await http.get<Cart>('/cart')
 
     return response.data
   },
   async addCartItem(c: AddCartItem): Promise<boolean | ErrorResponse> {
     try {
-      await http.post('/carts', c)
+      await http.post('/cart', c)
       return true
     } catch (err) {
       if (!axios.isAxiosError(err)) return false
@@ -23,7 +23,7 @@ export const cart = {
   },
   async deleteCartItem(c: CartItem): Promise<boolean | ErrorResponse> {
     try {
-      await http.post('/carts/remove-item', {
+      await http.post('/cart/remove-item', {
         productId: c.productId,
       })
       return true
@@ -39,7 +39,7 @@ export const cart = {
     c: SetCartItemQuantity
   ): Promise<boolean | ErrorResponse> {
     try {
-      await http.put('/carts', c)
+      await http.put('/cart', c)
       return true
     } catch (err) {
       if (!axios.isAxiosError(err)) return false

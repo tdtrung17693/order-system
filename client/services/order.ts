@@ -11,7 +11,7 @@ export const order = {
     return http.post('/orders', orders)
   },
   orderNextStatus(orderId: number) {
-    return http.patch(`/vendors/orders/${orderId}`)
+    return http.put(`/vendors/orders/${orderId}`)
   },
   async exportCsv(status?: Maybe<OrderStatus>) {
     const response = await http.get('/orders/export-csv', {

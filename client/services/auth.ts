@@ -1,5 +1,4 @@
 import Router from 'next/router'
-import { UserRole } from '../constants/user-role'
 import { User } from '../dto/user.dto'
 import { Maybe } from '../types/maybe'
 import { http } from './http'
