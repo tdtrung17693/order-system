@@ -4,3 +4,6 @@
     - Pick items from cart -> Pay -> Order created (shipping status).
         - Shipped
         - Cancelled
+
+- Real-time cart:
+![realtime cart](realtime-cart.png "Realtime cart")
