@@ -21,6 +21,11 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
+ARG API_HOST=localhost:8081
+
+ENV NEXT_PUBLIC_API_BASE_URL=http://${API_HOST}/api
+ENV NEXT_PUBLIC_WEBSOCKET_ENDPOINT=ws://${API_HOST}/api/hub/cart
+
 RUN yarn build
 
 # If using npm comment out above and use below instead
@@ -30,6 +35,7 @@ RUN yarn build
 FROM node:16-alpine AS runner
 WORKDIR /app
 
+ENV env_var_name=$var_name
 ENV NODE_ENV production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1

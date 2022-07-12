@@ -2,8 +2,6 @@ import { Button, Popconfirm, Space, Table, Tag, Tooltip } from 'antd'
 import { TablePaginationConfig } from 'antd/lib/table'
 import Column from 'antd/lib/table/Column'
 import { FilterValue } from 'antd/lib/table/interface'
-import { Layout } from 'components/layout/layout'
-import { LayoutDashboard } from 'components/layout/layout-dashboard'
 import { OrderStatus } from 'constants/order'
 import { ItemsPerPage } from 'constants/pagination'
 import { AuthContext } from 'context/auth.context'
@@ -14,6 +12,7 @@ import type { GetServerSideProps, NextPage } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import auth from 'services/auth'
@@ -90,7 +89,9 @@ const UserOrderManagePage: NextPage = () => {
   }
 
   const exportCSV = () => {
-    order.exportCsv(filteredStatus).catch((error) => handleApiError(t, error))
+    order
+      .exportCsv(false, filteredStatus)
+      .catch((error) => handleApiError(t, error))
   }
 
   return (
@@ -194,6 +195,9 @@ const UserOrderManagePage: NextPage = () => {
                     return
                   return (
                     <Space size="middle">
+                      <Link href={`/orders/${record.id}`}>
+                        <Button type="primary">View Order</Button>
+                      </Link>
                       <Popconfirm
                         title={t('order_cancel_confirm')}
                         onConfirm={() => cancelOrder(record.id)}

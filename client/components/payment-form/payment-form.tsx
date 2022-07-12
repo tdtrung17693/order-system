@@ -1,13 +1,9 @@
 import { yupResolver } from '@hookform/resolvers/yup'
-import { Button, Select } from 'antd'
+import { Button } from 'antd'
 import { PaymentInfo, PaymentMethod } from 'dto/payment.dto'
-import { CreateProduct } from 'dto/product.dto'
 import { useTranslation } from 'next-i18next'
 import React, { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
-import { notification } from 'services/notification'
-import { product } from 'services/product'
-import { handleApiError } from 'utils/error'
 import * as yup from 'yup'
 interface PaymentFormProps {
   onSubmit: (data: PaymentInfo) => any
@@ -109,13 +105,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = (props) => {
             errors.paymentMethodId && 'border-red-400'
           }`}
           {...register('paymentMethodId')}
+          defaultValue={props.paymentMethods?.[0].id}
         >
           {props.paymentMethods.map((method, idx) => (
-            <option
-              key={method.id}
-              value={method.id}
-              defaultChecked={idx === 0}
-            >
+            <option key={method.id} value={method.id}>
               {t(method.name)}
             </option>
           ))}

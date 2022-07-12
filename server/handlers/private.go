@@ -14,6 +14,7 @@ import (
 func PrivateEndpoints(e *echo.Group) {
 	e.GET("/me", api.CurrentUser)
 	e.POST("/orders", api.CreateOrders)
+	e.GET("/orders/:id", api.GetOrder)
 	e.PUT("/orders/:id", api.CancelOrder)
 	e.GET("/orders", api.GetAllOrders)
 	e.GET("/cart", api.GetCartItems)
@@ -51,4 +52,5 @@ func initVendorsEnpoint(e *echo.Group) {
 	vendorGroup.GET("/orders", vendors.GetAllVendorOrders)
 	vendorGroup.PUT("/orders/:id", vendors.OrderNextStatus)
 	vendorGroup.POST("/orders/:id/cancel", vendors.CancelOrder)
+	vendorGroup.GET("/orders/export-csv", vendors.ExportCSV)
 }

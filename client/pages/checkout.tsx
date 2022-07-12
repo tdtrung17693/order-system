@@ -126,12 +126,16 @@ const CheckoutPage: React.FC<any> = (props) => {
                   <thead>
                     <tr className="h-12 uppercase">
                       <th className="table-cell w-40"></th>
-                      <th className="text-left">Product</th>
+                      <th className="text-left">{t('product_name_label')}</th>
                       <th className="text-center">
-                        <span>Quantity</span>
+                        <span>{t('order_item_quantity_label')}</span>
                       </th>
-                      <th className="text-right table-cell">Unit price</th>
-                      <th className="text-right">Total price</th>
+                      <th className="text-right table-cell">
+                        {t('product_price_label')}
+                      </th>
+                      <th className="text-right">
+                        {t('order_item_total_label')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>

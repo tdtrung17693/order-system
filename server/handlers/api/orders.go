@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/csv"
-	"errors"
 	"fmt"
 	"net/http"
 	"order-system/common"
@@ -14,7 +13,6 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 // GetAllOrders godoc
@@ -40,6 +38,61 @@ func GetAllOrders(c echo.Context) error {
 	return c.JSON(http.StatusOK, paginatedRes)
 }
 
+// GetOrder godoc
+// @Summary      Get an order
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Param Authorization header string true "With the bearer started"
+// @Param id path int true "Order id"
+// @Success      200  "Success" {object} dto.PaginationResponse
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/orders [get]
+func GetOrder(c echo.Context) error {
+	oIdStr := c.Param("id")
+
+	oId, err := strconv.Atoi(oIdStr)
+
+	if err != nil {
+		c.Logger().Error(err.Error())
+		return common.ErrorInternalServerError
+	}
+
+	// Order could be get by user or vendor
+	currentUser := utils.GetCurrentUser(c)
+	vendorOrderExists, err := orders.OrderExists(currentUser.ID, uint(oId), true)
+
+	if err != nil {
+		c.Logger().Error(err.Error())
+		return common.ErrorInternalServerError
+	}
+
+	if !vendorOrderExists {
+		userOrderExists, err := orders.OrderExists(currentUser.ID, uint(oId), false)
+
+		if err != nil {
+			c.Logger().Error(err.Error())
+			return common.ErrorInternalServerError
+		}
+
+		if !userOrderExists {
+			return &echo.HTTPError{
+				Code:    http.StatusNotFound,
+				Message: common.ErrorResourceNotFound.Error(),
+			}
+		}
+	}
+
+	order, err := orders.FindOrder(uint(oId))
+
+	if err != nil {
+		c.Logger().Error(err)
+		return common.ErrorInternalServerError
+	}
+
+	return c.JSON(http.StatusOK, order)
+}
+
 // CreateOrders godoc
 // @Summary      Create orders based on chosen cart items
 // @Tags         orders
@@ -60,7 +113,6 @@ func CreateOrders(c echo.Context) error {
 	currentUser := utils.GetCurrentUser(c)
 
 	newOrders := []models.Order{}
-	items := []models.OrderItem{}
 
 	for i, order := range payload.Orders {
 		newOrders = append(newOrders, models.Order{
@@ -72,7 +124,7 @@ func CreateOrders(c echo.Context) error {
 		})
 
 		for _, item := range order.Items {
-			newOrders[i].Items = append(items, models.OrderItem{
+			newOrders[i].Items = append(newOrders[i].Items, models.OrderItem{
 				ProductID: uint(item.ProductID),
 				Quantity:  item.Quantity,
 			})
@@ -104,9 +156,9 @@ func CreateOrders(c echo.Context) error {
 func CancelOrder(c echo.Context) error {
 	payload := new(dto.OrderCancelRequest)
 
-	idStr := c.Param("id")
+	oIdStr := c.Param("id")
 
-	id, err := strconv.Atoi(idStr)
+	oId, err := strconv.Atoi(oIdStr)
 
 	if err != nil {
 		c.Logger().Error(err.Error())
@@ -118,21 +170,21 @@ func CancelOrder(c echo.Context) error {
 	}
 
 	currentUser := utils.GetCurrentUser(c)
-	_, err = orders.FindOrderOfUser(uint(id), currentUser.ID)
+	exists, err := orders.OrderExists(currentUser.ID, uint(oId), false)
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &echo.HTTPError{
-				Code:    http.StatusNotFound,
-				Message: common.ErrorResourceNotFound.Error(),
-			}
-		}
-
 		c.Logger().Error(err.Error())
 		return common.ErrorInternalServerError
 	}
 
-	err = orders.CancelOrder(uint(id))
+	if !exists {
+		return &echo.HTTPError{
+			Code:    http.StatusNotFound,
+			Message: common.ErrorResourceNotFound.Error(),
+		}
+	}
+
+	err = orders.CancelOrder(uint(oId))
 
 	if err != nil {
 		c.Logger().Error(err.Error())
@@ -165,15 +217,9 @@ func ExportCSV(c echo.Context) error {
 		filters["status"] = status
 	}
 
-	if currentUser.Role == models.Vendor {
-		filteredOrders, err = orders.FindAllOrdersOfVendor(currentUser.ID, dto.PaginationQuery{
-			Filters: filters,
-		})
-	} else {
-		filteredOrders, err = orders.FindAllOrdersOfUser(currentUser.ID, dto.PaginationQuery{
-			Filters: filters,
-		})
-	}
+	filteredOrders, err = orders.FindAllOrdersOfUser(currentUser.ID, dto.PaginationQuery{
+		Filters: filters,
+	})
 
 	if err != nil {
 		c.Logger().Error(err)
@@ -183,11 +229,12 @@ func ExportCSV(c echo.Context) error {
 	b := &bytes.Buffer{}
 	writer := csv.NewWriter(b)
 	writer.Write(
-		[]string{"Id", "Created At", "Updated At", "Total Price", "Status"},
+		[]string{"Id", "Vendor", "Created At", "Updated At", "Total (USD)", "Status"},
 	)
 	for _, order := range filteredOrders.Items {
 		writer.Write([]string{
 			fmt.Sprintf("%d", order.Id),
+			order.VendorName,
 			order.CreatedAt.Format("Jan 02 2006 15:04 -0700"),
 			order.UpdatedAt.Format("Jan 02 2006 15:04 -0700"),
 			order.TotalPrice.String(),

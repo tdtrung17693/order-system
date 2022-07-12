@@ -1,4 +1,5 @@
 import { OrderStatus } from 'constants/order'
+import Decimal from 'decimal.js'
 
 export interface Order {
   createdAt: string
@@ -8,11 +9,20 @@ export interface Order {
   statusChangeTime: string
   total: string
   paymentMethodId: string
+  paymentMethodName: string
   shippingAddress: string
   recipientName: string
   recipientPhone: string
   vendorId: number
   vendorName: string
+  userName: string
+  userId: number
+  items?: {
+    productName: string
+    productId: string
+    quantity: number
+    unitPrice: number
+  }[]
 }
 export interface OrdersCreate {
   orders: OrderCreate[]

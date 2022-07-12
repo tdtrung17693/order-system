@@ -1,5 +1,5 @@
 import { OrderStatus } from 'constants/order'
-import { OrdersCreate } from 'dto/order.dto'
+import { Order, OrdersCreate } from 'dto/order.dto'
 import { Maybe } from 'types/maybe'
 import { http } from './http'
 
@@ -13,8 +13,16 @@ export const order = {
   orderNextStatus(orderId: number) {
     return http.put(`/vendors/orders/${orderId}`)
   },
-  async exportCsv(status?: Maybe<OrderStatus>) {
-    const response = await http.get('/orders/export-csv', {
+  getOrder(orderId: number): Promise<Order> {
+    return http.get<Order>(`/orders/${orderId}`).then((res) => res.data)
+  },
+  async exportCsv(isVendor: boolean, status?: Maybe<OrderStatus>) {
+    let endpoint = '/orders/export-csv'
+
+    if (isVendor) {
+      endpoint = `/vendors${endpoint}`
+    }
+    const response = await http.get(endpoint, {
       responseType: 'blob',
       params: {
         status,

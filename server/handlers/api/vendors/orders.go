@@ -1,7 +1,10 @@
 package vendors
 
 import (
+	"bytes"
+	"encoding/csv"
 	"errors"
+	"fmt"
 	"net/http"
 	"order-system/common"
 	"order-system/handlers/dto"
@@ -10,7 +13,6 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 // GetAllVendorOrders godoc
@@ -48,23 +50,30 @@ func GetAllVendorOrders(c echo.Context) error {
 // @Failure      500  {object}  echo.HTTPError
 // @Router       /api/vendors/orders/:id [put]
 func OrderNextStatus(c echo.Context) error {
-	pIdParam := c.Param("id")
+	oIdStr := c.Param("id")
 
-	pId, err := strconv.ParseUint(pIdParam, 10, 64)
+	oId, err := strconv.ParseUint(oIdStr, 10, 64)
 	if err != nil {
 		c.Logger().Error(err)
 		return common.ErrorInternalServerError
 	}
 
 	currentUser := utils.GetCurrentUser(c)
-	_, err = orders.FindOrderOfVendor(uint(pId), currentUser.ID)
+	exists, err := orders.OrderExists(currentUser.ID, uint(oId), true)
 
 	if err != nil {
-		c.Logger().Error(err)
+		c.Logger().Error(err.Error())
 		return common.ErrorInternalServerError
 	}
 
-	if err := orders.SetNextStatusForOrder(uint(pId)); err != nil {
+	if !exists {
+		return &echo.HTTPError{
+			Code:    http.StatusNotFound,
+			Message: common.ErrorResourceNotFound.Error(),
+		}
+	}
+
+	if err := orders.SetNextStatusForOrder(uint(oId)); err != nil {
 		if errors.Is(err, common.ErrorOrderFinalStateReached) {
 			return &echo.HTTPError{
 				Code:    http.StatusBadRequest,
@@ -95,9 +104,9 @@ func OrderNextStatus(c echo.Context) error {
 func CancelOrder(c echo.Context) error {
 	payload := new(dto.OrderCancelRequest)
 
-	idStr := c.Param("id")
+	oIdStr := c.Param("id")
 
-	id, err := strconv.Atoi(idStr)
+	oId, err := strconv.Atoi(oIdStr)
 
 	if err != nil {
 		c.Logger().Error(err)
@@ -109,25 +118,25 @@ func CancelOrder(c echo.Context) error {
 	}
 
 	currentUser := utils.GetCurrentUser(c)
-	_, err = orders.FindOrderOfVendor(uint(id), currentUser.ID)
+	exists, err := orders.OrderExists(currentUser.ID, uint(oId), true)
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &echo.HTTPError{
-				Code:    http.StatusNotFound,
-				Message: common.ErrorResourceNotFound.Error(),
-			}
-		}
-
 		c.Logger().Error(err.Error())
 		return common.ErrorInternalServerError
+	}
+
+	if !exists {
+		return &echo.HTTPError{
+			Code:    http.StatusNotFound,
+			Message: common.ErrorResourceNotFound.Error(),
+		}
 	}
 
 	if err = c.Validate(payload); err != nil {
 		return err
 	}
 
-	err = orders.CancelOrder(uint(id))
+	err = orders.CancelOrder(uint(oId))
 
 	if err != nil {
 		c.Logger().Error(err)
@@ -135,4 +144,62 @@ func CancelOrder(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+// ExportCSV godoc
+// @Summary      Export user's orders to CSV
+// @Tags         vendor-orders
+// @Accept       json
+// @Produce      text/csv
+// @Param Authorization header string true "With the bearer started"
+// @Param status query string false "Status of the orders to be exported"
+// @Success      200  "Success"
+// @Failure      500  {object}  echo.HTTPError
+// @Router       /api/vendors/orders/export-csv [get]
+func ExportCSV(c echo.Context) error {
+	status := c.QueryParam("status")
+
+	currentUser := utils.GetCurrentUser(c)
+	var filteredOrders *dto.PaginationResponse[dto.OrderDto]
+	var err error
+
+	filters := make(map[string]string)
+
+	if len(status) > 0 {
+		filters["status"] = status
+	}
+
+	filteredOrders, err = orders.FindAllOrdersOfVendor(currentUser.ID, dto.PaginationQuery{
+		Filters: filters,
+	})
+
+	if err != nil {
+		c.Logger().Error(err)
+		return common.ErrorInternalServerError
+	}
+
+	b := &bytes.Buffer{}
+	writer := csv.NewWriter(b)
+	writer.Write(
+		[]string{"Id", "Recipient Name", "Recipient Phone", "Address", "Created At", "Updated At", "Total (USD)", "Status"},
+	)
+	for _, order := range filteredOrders.Items {
+		writer.Write([]string{
+			fmt.Sprintf("%d", order.Id),
+			order.RecipientName,
+			order.RecipientPhone,
+			order.ShippingAddress,
+			order.CreatedAt.Format("Jan 02 2006 15:04 -0700"),
+			order.UpdatedAt.Format("Jan 02 2006 15:04 -0700"),
+			order.TotalPrice.String(),
+			string(order.Status),
+		})
+	}
+
+	writer.Flush()
+	c.Response().Header().Set("Content-Type", "text/csv")
+	c.Response().Header().Set("Content-Disposition", "attachment;filename=orders.csv")
+	_, err = c.Response().Write(b.Bytes())
+
+	return err
 }

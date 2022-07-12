@@ -55,7 +55,7 @@ func CreateOrders(userId uint, orders []models.Order) error {
 			orders[i].Items = nil
 		}
 
-		if err := tx.Create(orders).Error; err != nil {
+		if err := tx.Create(&orders).Error; err != nil {
 			return err
 		}
 
@@ -76,6 +76,7 @@ func CreateOrders(userId uint, orders []models.Order) error {
 		// keep track of cart items to be deleted
 		// after creating the order items
 		cartItemProductIdsToClean := []uint{}
+
 		for key, items := range orderItems {
 			productIds := []uint{}
 			orderId := orders[key].ID
@@ -84,8 +85,8 @@ func CreateOrders(userId uint, orders []models.Order) error {
 				cartItemProductIdsToClean = append(cartItemProductIdsToClean, item.ProductID)
 				productIds = append(productIds, item.ProductID)
 			}
-
-			res := tx.Exec(orderItemsCreateQuery, orderId, productIds, userId)
+			fmt.Println(productIds)
+			res := tx.Debug().Exec(orderItemsCreateQuery, orderId, productIds, userId)
 
 			if res.Error != nil {
 				return res.Error
@@ -146,20 +147,64 @@ func CreateOrders(userId uint, orders []models.Order) error {
 	})
 }
 
-func FindOrderOfUser(id uint, userId uint) (models.Order, error) {
+func FindOrder(id uint) (dto.OrderDto, error) {
 	db := database.GetDBInstance()
-	o := models.Order{}
-	res := db.Preload("Items").Where("user_id = ? and id = ?", id, userId).Find(&o)
+	order := dto.OrderDto{}
 
-	return o, res.Error
+	orderQuery := `
+		select o.*, pm.name as payment_method_name, u.name as vendor_name, u1.name as user_name, sum(coalesce(pp1.price,0) * oi.quantity) as total_price, ot1.created_at as status_change_time, ot1.status as status
+			from orders o
+			left join users u on o.vendor_id = u.id
+			left join users u1 on o.user_id = u1.id
+			left join order_items oi on o.id = oi.order_id
+			left join product_prices pp1 on (oi.product_price_id = pp1.id)
+			left join product_prices pp2 on  (oi.product_price_id = pp2.id and
+											(pp1.created_at < pp2.created_at or (pp1.created_at = pp2.created_at and pp1.id < pp2.id)))
+
+			left join order_transactions ot1 on (o.id = ot1.order_id)
+			left join order_transactions ot2 on (o.id = ot2.order_id and
+												(ot1.created_at < ot2.created_at or
+												(ot1.created_at = ot2.created_at and ot1.id < ot2.id)))
+			left join payment_methods pm on o.payment_method_id = pm.id
+			where ot2.id is null and  pp2.id is null and o.id = ?
+			group by o.id, pp1.price, ot1.status, o.created_at, ot1.created_at, u.name, u1.name, pm.name
+	`
+
+	if err := db.Raw(orderQuery, id).Scan(&order).Error; err != nil {
+		return order, err
+	}
+
+	orderItemsDB := []models.OrderItem{}
+	if err := db.Preload("Product").Preload("ProductPrice").Where("order_id = ?", id).Find(&orderItemsDB).Error; err != nil {
+		return order, err
+	}
+
+	order.Items = []dto.OrderItemDto{}
+	for _, item := range orderItemsDB {
+		order.Items = append(order.Items, dto.OrderItemDto{
+			ProductID:   uint32(item.ProductID),
+			ProductName: item.Product.Name,
+			Quantity:    item.Quantity,
+			UnitPrice:   item.ProductPrice.Price,
+		})
+	}
+
+	return order, nil
 }
 
-func FindOrderOfVendor(id uint, vendorId uint) (models.Order, error) {
+func OrderExists(userId uint, orderId uint, isVendor bool) (bool, error) {
 	db := database.GetDBInstance()
-	o := models.Order{}
-	res := db.Preload("Items").Where("vendor_id = ? and id = ?", id, vendorId).Find(&o)
-
-	return o, res.Error
+	var exists bool
+	idName := "user_id"
+	if isVendor {
+		idName = "vendor_id"
+	}
+	err := db.Model(models.Order{}).
+		Select("count(*) > 0").
+		Where(fmt.Sprintf("%s = ? and id = ?", idName), userId, orderId).
+		Find(&exists).
+		Error
+	return exists, err
 }
 
 func getOrderNextStatus(status models.OrderStatus) (models.OrderStatus, error) {
@@ -298,7 +343,7 @@ func FindAllOrdersOfVendor(vendorId uint, paginationQuery dto.PaginationQuery) (
 		limitQuery = " offset ? limit ?"
 	}
 
-	res := db.Raw(`
+	res := db.Debug().Raw(`
 	select o.*, sum(coalesce(pp1.price,0) * oi.quantity) as total_price, ot1.created_at as status_change_time, ot1.status as status
 		from orders o
 		left join users u on o.vendor_id = u.id

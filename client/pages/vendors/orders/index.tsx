@@ -102,7 +102,9 @@ const VendorDashboardProducts: NextPage = () => {
   }
 
   const exportCSV = () => {
-    order.exportCsv(filteredStatus).catch((error) => handleApiError(t, error))
+    order
+      .exportCsv(true, filteredStatus)
+      .catch((error) => handleApiError(t, error))
   }
 
   if (authCtx.user && authCtx.user.role != UserRole.Vendor) {
