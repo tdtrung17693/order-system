@@ -1,3 +1,6 @@
+import { Button, Popconfirm, Tag } from 'antd'
+import { OrderStatusTag } from 'components/order-status-tag/order-status-tag'
+import { OrderStatus } from 'constants/order'
 import { AuthContext } from 'context/auth.context'
 import Decimal from 'decimal.js'
 import { Order } from 'dto/order.dto'
@@ -64,9 +67,26 @@ const OrderPage: NextPage = () => {
 
       {currentOrder != null && (
         <>
-          <h2 className="text-5xl mb-4 text-center">
-            {t('title_order')}: {currentOrder.id}
-          </h2>
+          <div className=" text-center">
+            <h2 className="text-5xl mb-4">
+              {t('title_order')}: {currentOrder.id}
+            </h2>
+            <OrderStatusTag status={currentOrder.status} />
+            {currentOrder.status !== OrderStatus.Cancelled &&
+              currentOrder.status !== OrderStatus.Shipping &&
+              currentOrder.status !== OrderStatus.Shipped && (
+                <Popconfirm
+                  title={t('order_cancel_confirm')}
+                  onConfirm={() => cancelOrder(currentOrder.id)}
+                  okText={t('confirm_ok_text')}
+                  cancelText={t('confirm_cancel_text')}
+                >
+                  <Button type="primary" danger>
+                    {t('order_cancel_text')}
+                  </Button>
+                </Popconfirm>
+              )}
+          </div>
           <main className="flex flex-col justify-start items-center min-h-screen p-16">
             <div className="mt-4 text-base w-full">
               <div className="mt-4">

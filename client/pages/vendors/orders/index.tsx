@@ -3,6 +3,7 @@ import { TablePaginationConfig } from 'antd/lib/table'
 import Column from 'antd/lib/table/Column'
 import { FilterValue } from 'antd/lib/table/interface'
 import { LayoutDashboard } from 'components/layout/layout-dashboard'
+import { OrderStatusTag } from 'components/order-status-tag/order-status-tag'
 import { OrderStatus } from 'constants/order'
 import { ItemsPerPage } from 'constants/pagination'
 import { UserRole } from 'constants/user-role'
@@ -180,26 +181,18 @@ const VendorDashboardProducts: NextPage = () => {
                       value: OrderStatus.Shipped,
                     },
                   ]}
-                  render={(_: any, record: Order) => {
-                    if (record.status === OrderStatus.Cancelled) {
-                      return <Tag color="volcano">{record.status}</Tag>
-                    }
-                    return <Tag color="geekblue">{record.status}</Tag>
-                  }}
+                  render={(_: any, record: Order) => (
+                    <OrderStatusTag status={record.status} />
+                  )}
                 />
                 <Column
                   title="Action"
                   key="action"
                   width="10%"
                   render={(_: any, record: Order) => {
-                    if (
-                      record.status === OrderStatus.Cancelled ||
-                      record.status === OrderStatus.Shipped
-                    )
-                      return
                     return (
                       <Space size="middle">
-                        {record.status !== OrderStatus.Shipping && (
+                        {order.isCancellableState(record) && (
                           <Popconfirm
                             title={t('order_cancel_confirm')}
                             onConfirm={() => cancelOrder(record.id)}
@@ -212,16 +205,18 @@ const VendorDashboardProducts: NextPage = () => {
                           </Popconfirm>
                         )}
 
-                        <Popconfirm
-                          title={t('confirm_popconfirm_title')}
-                          onConfirm={() => setOrderNextStatus(record.id)}
-                          okText={t('confirm_ok_text')}
-                          cancelText={t('confirm_cancel_text')}
-                        >
-                          <Button type="primary">
-                            {t('order_next_status_text')}
-                          </Button>
-                        </Popconfirm>
+                        {order.isFinalState(record) && (
+                          <Popconfirm
+                            title={t('confirm_popconfirm_title')}
+                            onConfirm={() => setOrderNextStatus(record.id)}
+                            okText={t('confirm_ok_text')}
+                            cancelText={t('confirm_cancel_text')}
+                          >
+                            <Button type="primary">
+                              {t('order_next_status_text')}
+                            </Button>
+                          </Popconfirm>
+                        )}
                       </Space>
                     )
                   }}

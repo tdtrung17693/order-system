@@ -4,6 +4,19 @@ import { Maybe } from 'types/maybe'
 import { http } from './http'
 
 export const order = {
+  isCancellableState(order: Order) {
+    return (
+      order.status !== OrderStatus.Cancelled &&
+      order.status !== OrderStatus.Shipping &&
+      order.status !== OrderStatus.Shipped
+    )
+  },
+  isFinalState(order: Order) {
+    return (
+      order.status !== OrderStatus.Cancelled &&
+      order.status !== OrderStatus.Shipped
+    )
+  },
   cancelOrder(orderId: number) {
     return http.post(`/orders/${orderId}/cancel`)
   },

@@ -2,6 +2,7 @@ import { Button, Popconfirm, Space, Table, Tag, Tooltip } from 'antd'
 import { TablePaginationConfig } from 'antd/lib/table'
 import Column from 'antd/lib/table/Column'
 import { FilterValue } from 'antd/lib/table/interface'
+import { OrderStatusTag } from 'components/order-status-tag/order-status-tag'
 import { OrderStatus } from 'constants/order'
 import { ItemsPerPage } from 'constants/pagination'
 import { AuthContext } from 'context/auth.context'
@@ -176,38 +177,32 @@ const UserOrderManagePage: NextPage = () => {
                     value: OrderStatus.Shipped,
                   },
                 ]}
-                render={(_: any, record: Order) => {
-                  if (record.status === OrderStatus.Cancelled) {
-                    return <Tag color="volcano">{record.status}</Tag>
-                  }
-                  return <Tag color="geekblue">{record.status}</Tag>
-                }}
+                render={(_: any, record: Order) => (
+                  <OrderStatusTag status={record.status} />
+                )}
               />
               <Column
                 title="Action"
                 key="action"
                 width="10%"
                 render={(_: any, record: Order) => {
-                  if (
-                    record.status === OrderStatus.Cancelled ||
-                    record.status === OrderStatus.Shipping
-                  )
-                    return
                   return (
                     <Space size="middle">
                       <Link href={`/orders/${record.id}`}>
-                        <Button type="primary">View Order</Button>
+                        <Button type="primary">{t('order_view_text')}</Button>
                       </Link>
-                      <Popconfirm
-                        title={t('order_cancel_confirm')}
-                        onConfirm={() => cancelOrder(record.id)}
-                        okText={t('confirm_ok_text')}
-                        cancelText={t('confirm_cancel_text')}
-                      >
-                        <Button type="primary" danger>
-                          {t('order_cancel_text')}
-                        </Button>
-                      </Popconfirm>
+                      {order.isCancellableState(record) && (
+                        <Popconfirm
+                          title={t('order_cancel_confirm')}
+                          onConfirm={() => cancelOrder(record.id)}
+                          okText={t('confirm_ok_text')}
+                          cancelText={t('confirm_cancel_text')}
+                        >
+                          <Button type="primary" danger>
+                            {t('order_cancel_text')}
+                          </Button>
+                        </Popconfirm>
+                      )}
                     </Space>
                   )
                 }}
