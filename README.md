@@ -1,23 +1,30 @@
 # Order Management System
+**Home Page**
+![homepage](./img/homepage.png "Home Page")
+
+**Home Page after a vendor signed in**
+![signed in homepage](./img/signed_in.png "Signed In Home Page")
+
 
 ## How to run
 - `docker compose up` 
-- An instance of the web application will be up and can be access at port `8082`
+- An instance of the web application will be up and can be accessed at port `8082`
 - Default data:
     - Users:
         - `email@example.com`: regular user
         - `email.vendor@example.com`: vendor user
     - Other sample data: products, product prices, ...
-## Use cases:
+- `swagger` document can be accessed at: `/swagger/`
+## Features:
 - Users/Vendor Log in/Sign up
 - User view products
 - User add/remove the product from the cart
 - Create new order from a set of items in the cart
 - View list of products
 - Manage products/inventory
-- Users/vendors can log in, sign up
 - Users/vendors can manage their own orders
 - Export CSV for orders (vendor/user)
+- Realtime cart
 
 ## Assumption
 - An order is at `paid` state right after its creation

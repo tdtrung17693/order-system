@@ -1,12 +1,11 @@
 import type { GetServerSideProps, NextPage } from 'next'
-import Link from 'next/link'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import Link from 'next/link'
 import { useContext } from 'react'
-import { AuthContext } from '../context/auth.context'
 import { UserRole } from '../constants/user-role'
+import { AuthContext } from '../context/auth.context'
 
 const Home: NextPage = () => {
   const authCtx = useContext(AuthContext)
