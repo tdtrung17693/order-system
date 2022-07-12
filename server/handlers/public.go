@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 	"order-system/handlers/api"
 	"order-system/handlers/websocket"
@@ -14,12 +13,6 @@ func PublicEndpoints(e *echo.Group) {
 	e.POST("/register", api.RegisterUser)
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, "OK")
-	})
-	e.GET("/test", func(c echo.Context) error {
-		return &echo.HTTPError{
-			Code:    http.StatusAccepted,
-			Message: errors.New("ASDS").Error(),
-		}
 	})
 	e.GET("/hub/cart", websocket.CreateWebsocketHandler(websocket.GetHub()))
 }
