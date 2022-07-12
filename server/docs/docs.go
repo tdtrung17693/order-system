@@ -193,13 +193,20 @@ const docTemplate = `{
                 "tags": [
                     "orders"
                 ],
-                "summary": "Get all orders of a current logged in user",
+                "summary": "Get an order",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "With the bearer started",
                         "name": "Authorization",
                         "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Order id",
+                        "name": "id",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -562,6 +569,46 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Order not found (or not belongs to current logged in vendor)"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/vendors/orders/export-csv": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "vendor-orders"
+                ],
+                "summary": "Export user's orders to CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "With the bearer started",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status of the orders to be exported",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1013,8 +1060,14 @@ const docTemplate = `{
                 "productId": {
                     "type": "integer"
                 },
+                "productName": {
+                    "type": "string"
+                },
                 "quantity": {
                     "type": "integer"
+                },
+                "unitPrice": {
+                    "type": "number"
                 }
             }
         },

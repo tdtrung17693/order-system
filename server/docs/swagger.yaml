@@ -35,8 +35,12 @@ definitions:
     properties:
       productId:
         type: integer
+      productName:
+        type: string
       quantity:
         type: integer
+      unitPrice:
+        type: number
     type: object
   dto.OrdersCreateDto:
     properties:
@@ -233,6 +237,11 @@ paths:
         name: Authorization
         required: true
         type: string
+      - description: Order id
+        in: path
+        name: id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -242,7 +251,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/echo.HTTPError'
-      summary: Get all orders of a current logged in user
+      summary: Get an order
       tags:
       - orders
     post:
@@ -475,6 +484,32 @@ paths:
           schema:
             $ref: '#/definitions/echo.HTTPError'
       summary: Cancel an order by logged in vendor
+      tags:
+      - vendor-orders
+  /api/vendors/orders/export-csv:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: With the bearer started
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Status of the orders to be exported
+        in: query
+        name: status
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: Success
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Export user's orders to CSV
       tags:
       - vendor-orders
   /api/vendors/products:
