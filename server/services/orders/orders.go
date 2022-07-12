@@ -85,7 +85,7 @@ func CreateOrders(userId uint, orders []models.Order) error {
 				cartItemProductIdsToClean = append(cartItemProductIdsToClean, item.ProductID)
 				productIds = append(productIds, item.ProductID)
 			}
-			fmt.Println(productIds)
+
 			res := tx.Debug().Exec(orderItemsCreateQuery, orderId, productIds, userId)
 
 			if res.Error != nil {
@@ -116,7 +116,7 @@ func CreateOrders(userId uint, orders []models.Order) error {
 				PreviousStatus: models.OrderPlaced,
 				Status:         models.OrderPaid,
 			}
-			newOrderTransaction.CreatedAt = time.Now()
+			newOrderTransaction.CreatedAt = time.Now().Add(time.Second * 10)
 			orderTransactions = append(orderTransactions, newOrderTransaction)
 		}
 
@@ -397,7 +397,9 @@ func CancelOrder(id uint) error {
 			return err
 		}
 
-		if latestOrderTransaction.Status == models.OrderCancelled || latestOrderTransaction.Status == models.OrderShipped {
+		if latestOrderTransaction.Status == models.OrderCancelled ||
+			latestOrderTransaction.Status == models.OrderShipped ||
+			latestOrderTransaction.Status == models.OrderShipping {
 			return nil
 		}
 

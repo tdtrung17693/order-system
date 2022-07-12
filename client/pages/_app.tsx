@@ -68,7 +68,7 @@ function MyApp({ Component, pageProps }: AppProps) {
     setUser(null)
   }
 
-  function initAuthAppState() {
+  const initAuthAppState = useCallback(() => {
     if (!auth.user) return
     setUser(auth.user)
     setAuthenticated(true)
@@ -78,7 +78,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       console.log('asd')
       getCart()
     })
-  }
+  }, [getCart])
 
   useEffect(() => {
     auth.onLogin(() => {
@@ -90,7 +90,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         initAuthAppState()
       }
     })
-  }, [])
+  }, [initAuthAppState])
 
   return (
     <AuthContext.Provider value={{ authenticated, user, logout }}>

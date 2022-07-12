@@ -23,7 +23,7 @@ const Signup: NextPage = () => {
       <main className="flex flex-col justify-center items-center min-h-screen p-16">
         <h1 className="text-5xl mb-4">{t('signup_user')}</h1>
         <div className="flex justify-center">
-          <SignUpForm role={UserRole.Vendor} />
+          <SignUpForm role={UserRole.User} />
         </div>
       </main>
     </div>

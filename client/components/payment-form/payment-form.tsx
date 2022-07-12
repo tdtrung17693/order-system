@@ -2,7 +2,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import { Button } from 'antd'
 import { PaymentInfo, PaymentMethod } from 'dto/payment.dto'
 import { useTranslation } from 'next-i18next'
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import * as yup from 'yup'
 interface PaymentFormProps {
@@ -27,6 +27,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = (props) => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
@@ -42,6 +43,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = (props) => {
 
     props.onSubmit(payload)
   }
+
+  useEffect(() => {
+    if (!props.paymentMethods?.[0]?.id) return
+    setValue('paymentMethodId', props.paymentMethods?.[0].id)
+  })
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -105,7 +111,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = (props) => {
             errors.paymentMethodId && 'border-red-400'
           }`}
           {...register('paymentMethodId')}
-          defaultValue={props.paymentMethods?.[0].id}
         >
           {props.paymentMethods.map((method, idx) => (
             <option key={method.id} value={method.id}>

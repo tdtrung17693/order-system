@@ -41,7 +41,7 @@ export const SignInForm: React.FC<any> = (props) => {
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       {errors.apiError && (
-        <div className="text-red-400">{errors.apiError!.message as any}</div>
+        <div className="text-red-400">{t(errors.apiError!.message as any)}</div>
       )}
 
       <div className="mb-3 xl:w-96">

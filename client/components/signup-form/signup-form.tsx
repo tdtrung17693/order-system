@@ -7,6 +7,8 @@ import { parseRole, UserRole } from '../../constants/user-role'
 import auth from '../../services/auth'
 import { users } from '../../services/users'
 import { UserSignUp } from '../../dto/auth.dto'
+import Link from 'next/link'
+import { Button } from 'antd'
 
 interface SignUpFormProps {
   role: UserRole
@@ -56,7 +58,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = (props) => {
         window.location.href = '/'
       })
       .catch((err) => {
-        setError('apiError', { message: err.message })
+        setError('apiError', { message: t(err.response?.data?.message) })
       })
   }
   return (
@@ -139,6 +141,12 @@ export const SignUpForm: React.FC<SignUpFormProps> = (props) => {
         >
           Sign Up
         </button>
+      </div>
+      <div className="mt-6">
+        Already have an account?{' '}
+        <Link href="/auth/signin">
+          <a className="text-blue-600">Sign In</a>
+        </Link>
       </div>
     </form>
   )

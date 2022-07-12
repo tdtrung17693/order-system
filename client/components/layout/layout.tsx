@@ -1,16 +1,15 @@
 import {
   Book24Filled,
+  Box24Filled,
   Cart24Regular,
   DoorArrowLeft24Regular,
   Home24Regular,
   PersonAccounts24Filled,
-  Box24Filled,
 } from '@fluentui/react-icons'
 import { Tooltip } from 'antd'
 import { UserRole } from 'constants/user-role'
 import { useTranslation } from 'next-i18next'
 import Link from 'next/link'
-import { useRouter } from 'next/router'
 import React, { useContext } from 'react'
 import { AuthContext } from '../../context/auth.context'
 import { CartContext } from '../../context/cart.context'
@@ -66,7 +65,9 @@ export const Layout: React.FC<Props> = (props) => {
                 <span className="flex mr-4">
                   <DoorArrowLeft24Regular />{' '}
                 </span>
-                <span>{authCtx.user?.email}</span>
+                <span>
+                  {authCtx.user?.email} ({authCtx.user?.name})
+                </span>
               </a>
             </Tooltip>
             <Link className="" href="/cart">
