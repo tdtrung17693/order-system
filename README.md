@@ -3,6 +3,11 @@
 ## How to run
 - `docker compose up` 
 - An instance of the web application will be up and can be access at port `8082`
+- Default data:
+    - Users:
+        - `email@example.com`: regular user
+        - `email.vendor@example.com`: vendor user
+    - Other sample data: products, product prices, ...
 ## Use cases:
 - Users/Vendor Log in/Sign up
 - User view products
